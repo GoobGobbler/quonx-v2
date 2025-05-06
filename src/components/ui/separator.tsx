@@ -18,7 +18,8 @@ const Separator = React.forwardRef<
       decorative={decorative}
       orientation={orientation}
       className={cn(
-        "shrink-0 bg-border",
+        // Use border color directly for more visibility
+        "shrink-0 bg-border/50", // Use border color with some opacity
         orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
         className
       )}

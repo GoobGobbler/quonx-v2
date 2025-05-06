@@ -13,8 +13,8 @@ const cutiveMono = Cutive_Mono({
 
 
 export const metadata: Metadata = {
-  title: 'AIAgent - Retro IDE', // Updated title
-  description: 'AI-powered application development with a 60s/70s vibe', // Updated description
+  title: 'CodeSynth Terminal - AI IDE', // Updated title for Cyberpunk theme
+  description: 'AI-powered development in a retro-futuristic terminal interface.', // Updated description
 };
 
 export default function RootLayout({
@@ -24,8 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     // Apply the font variable to the html tag
-    <html lang="en" className={`${cutiveMono.variable}`}>
-       <body className={`font-mono antialiased`}> {/* Use font-mono as the base */}
+    // Force dark theme by adding 'dark' class here if needed, or manage via theme provider
+    <html lang="en" className={`${cutiveMono.variable} dark`}>
+       <body className={`font-mono antialiased bg-background text-foreground`}> {/* Use font-mono and theme colors */}
          {/* OllamaProvider removed */}
          {children}
          <Toaster />

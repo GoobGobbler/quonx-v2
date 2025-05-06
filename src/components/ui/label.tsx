@@ -7,6 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const labelVariants = cva(
+  // Applied font-mono globally via layout, but can reinforce here if needed
   "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 )
 
@@ -17,7 +18,7 @@ const Label = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <LabelPrimitive.Root
     ref={ref}
-    className={cn(labelVariants(), className)}
+    className={cn(labelVariants(), "font-mono", className)} // Explicitly add font-mono
     {...props}
   />
 ))

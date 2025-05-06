@@ -7,13 +7,14 @@ import { CodeDisplay } from "@/components/code-display";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, BrainCircuit } from "lucide-react"; // Removed Cloud and other unused icons
+import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil } from "lucide-react"; // Added X, Pencil
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-// Local Ollama client-side fetch
 import { listLocalOllamaModels, type OllamaModel } from '@/lib/ollama-client';
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; // Added Button
+import { EditPopup } from "@/components/edit-popup"; // Import the new popup component
 
 
 // Define structure for combined models list
@@ -46,6 +47,8 @@ export default function Home() {
   const [selectedModelId, setSelectedModelId] = useState<string | undefined>(undefined);
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(true);
   const [modelError, setModelError] = useState<string | null>(null);
+
+  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
 
   // Fetch local Ollama models and combine with Google AI models
   const fetchAndCombineModels = useCallback(async () => {
@@ -80,10 +83,8 @@ export default function Home() {
     if (!selectedModelId && combined.length > 0) {
         const firstGoogle = combined.find(m => m.provider === 'Google AI');
         const firstOllama = combined.find(m => m.provider === 'Ollama');
-        // Prioritize Google AI, then Ollama, then first available
         setSelectedModelId(firstGoogle?.id || firstOllama?.id || combined[0].id);
     } else if (selectedModelId && !combined.some(m => m.id === selectedModelId)) {
-        // If current selection is no longer valid, reset default
         const firstGoogle = combined.find(m => m.provider === 'Google AI');
         const firstOllama = combined.find(m => m.provider === 'Ollama');
         setSelectedModelId(firstGoogle?.id || firstOllama?.id || (combined.length > 0 ? combined[0].id : undefined));
@@ -92,60 +93,64 @@ export default function Home() {
     }
 
     if (ollamaError && combined.length === 0) {
-        setModelError(ollamaError); // Show error only if Ollama failed AND no other models exist
+        setModelError(ollamaError);
     } else if (ollamaError) {
-        // Show a less severe warning if Ollama failed but other models are present
          toast({
-            variant: "default", // Use default variant for warning
-            title: "Ollama Connection Issue",
+            variant: "default",
+            title: "Ollama Connection Warning",
             description: `${ollamaError}. Other models are available.`,
+            className: "font-mono border-secondary text-secondary", // Terminal style toast
          });
     }
 
-
     setIsLoadingModels(false);
-  }, [selectedModelId, toast]); // Depend on selectedModelId and toast
+  }, [selectedModelId, toast]);
 
   // Effect to load models on mount
   useEffect(() => {
     fetchAndCombineModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Fetch models only once on mount
+  }, []);
 
    // Effect to load previous code from localStorage
    useEffect(() => {
     const storedCode = localStorage.getItem('previousSuccessfulCode');
     if (storedCode) {
       setPreviousSuccessfulCode(storedCode);
+      // Optionally set generatedCode as well if you want it displayed initially
+      // setGeneratedCode(storedCode);
     }
   }, []);
 
-  // Effect to show general model loading error (if no models loaded at all)
+  // Effect to show general model loading error
   useEffect(() => {
       if (modelError && !isLoadingModels && allModels.length === 0) {
           toast({
               variant: "destructive",
-              title: "Failed to load any models",
+              title: "FATAL: No Models Loaded",
               description: modelError,
+              className: "font-mono",
           });
       }
   }, [modelError, isLoadingModels, allModels.length, toast]);
 
 
-  const handleGenerateCode = async () => {
-    if (!prompt.trim()) {
+  const handleGenerate = async (currentPrompt: string, codeToEdit?: string) => {
+     if (!currentPrompt.trim()) {
       toast({
         variant: "destructive",
-        title: "Prompt is empty",
-        description: "Please enter a prompt.",
+        title: "ERR: Prompt Empty",
+        description: "Input prompt required.",
+        className: "font-mono",
       });
       return;
     }
     if (!selectedModelId) {
          toast({
             variant: "destructive",
-            title: "No model selected",
-            description: "Please select a model.",
+            title: "ERR: No Model Selected",
+            description: "Select generation model.",
+            className: "font-mono",
          });
          return;
     }
@@ -155,9 +160,11 @@ export default function Home() {
 
     try {
       const input: GenerateCodeFromPromptInput = {
-        prompt,
-        previousCode: previousSuccessfulCode,
-        modelName: selectedModelId, // Pass the fully qualified model ID
+        prompt: currentPrompt,
+        // If codeToEdit is provided (from edit popup), use it as previousCode
+        // Otherwise, use the stored previousSuccessfulCode (for new generation based on history)
+        previousCode: codeToEdit ?? previousSuccessfulCode,
+        modelName: selectedModelId,
       };
       const result = await generateCodeFromPrompt(input);
       setGeneratedCode(result.code);
@@ -168,31 +175,49 @@ export default function Home() {
         localStorage.setItem('previousSuccessfulCode', result.code);
       }
 
-       const selectedModel = allModels.find(m => m.id === selectedModelId);
+      const selectedModel = allModels.find(m => m.id === selectedModelId);
       toast({
-        title: "Code Generation Successful",
-        description: `Generated using ${selectedModel?.name || selectedModelId} (${selectedModel?.provider || 'Unknown Provider'}).`,
+        title: "STATUS: Generation OK",
+        description: `Model: ${selectedModel?.name || selectedModelId}`,
+        className: "font-mono border-primary text-primary",
       });
     } catch (err) {
       console.error("Code generation failed:", err);
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
+      const errorMessage = err instanceof Error ? err.message : "Unknown error.";
       setGenerationError(errorMessage);
       toast({
         variant: "destructive",
-        title: "Code Generation Failed",
+        title: "ERR: Generation Failed",
         description: errorMessage,
+        className: "font-mono",
       });
-      setGeneratedCode(""); // Clear code on error
+      // Don't clear code on error during edit, keep the previous state
+      // setGeneratedCode("");
     } finally {
       setIsLoadingGeneration(false);
     }
   };
 
+  // Wrapper for initial generation
+  const handleInitialGenerate = () => {
+      handleGenerate(prompt); // Use the main prompt state
+  };
+
+  // Handler for the edit popup submission
+  const handleEditSubmit = (editPrompt: string) => {
+      if (!generatedCode) {
+           toast({ variant: "destructive", title: "ERR: No Code to Edit", description: "Generate code first.", className: "font-mono" });
+           return;
+      }
+      handleGenerate(editPrompt, generatedCode); // Pass the edit prompt and current code
+      setIsEditPopupOpen(false); // Close popup after submitting
+  };
+
+
   const getProviderIcon = (provider: CombinedModel['provider']) => {
       switch (provider) {
-          case 'Ollama': return <Server className="h-4 w-4 mr-2 text-blue-500" />; // Retro blue
-          case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-green-500" />; // Retro green
-          // No icons needed for removed providers
+          case 'Ollama': return <Server className="h-4 w-4 mr-2 text-secondary" />;
+          case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-primary" />;
           default: return null;
       }
   };
@@ -206,31 +231,43 @@ export default function Home() {
 
   // Determine if the generation button should be disabled
   const isGenerateDisabled = isLoadingGeneration || isLoadingModels || !selectedModelId || !prompt.trim();
+  const isEditDisabled = isLoadingGeneration || !generatedCode; // Disable edit if loading or no code generated
 
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="p-4 border-b border-border bg-card shadow-md">
-         {/* Retro title with chromatic aberration */}
-         <h1 className="text-3xl font-bold text-primary font-mono chromatic-aberration" data-text="AIAgent - Retro IDE">AIAgent - Retro IDE</h1>
-         <p className="text-sm text-muted-foreground font-mono">Develop applications with AI assistance (60s/70s Edition)</p>
+    // Main container with terminal background and text colors
+    <div className="flex flex-col h-screen bg-background text-foreground p-2 md:p-4 border-2 border-border shadow-[inset_0_0_10px_hsla(var(--foreground)/0.1)] rounded-sm">
+      {/* Header - Terminal Style */}
+      <header className="p-2 border-b-2 border-border mb-2 flex justify-between items-center">
+         <div>
+            {/* Use chromatic aberration effect and neon color */}
+             <h1 className="text-xl md:text-2xl font-bold text-primary font-mono chromatic-aberration-light" data-text="CodeSynth_Terminal//AI-IDE">CodeSynth_Terminal//AI-IDE</h1>
+             <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI-Assisted Development Interface v1.0</p>
+         </div>
+         {/* Optional: Add a blinking cursor or status light */}
+          <div className="flex items-center space-x-2">
+             <span className="text-xs text-muted-foreground font-mono hidden md:inline">STATUS:</span>
+             <div className={`w-3 h-3 rounded-full ${isLoadingGeneration ? 'bg-yellow-500 animate-pulse' : 'bg-primary'}`}></div>
+          </div>
       </header>
 
-      <main className="flex-grow flex flex-col lg:flex-row overflow-hidden p-4 gap-6">
-        {/* Left Side: Prompt Input & Model Selection */}
-        <div className="lg:w-1/3 flex flex-col gap-4">
+      {/* Main Content Area */}
+      <main className="flex-grow flex flex-col md:flex-row overflow-hidden gap-2 md:gap-4">
+
+        {/* Left Panel: Controls */}
+        <div className="w-full md:w-1/3 flex flex-col gap-3 md:gap-4 border border-border p-2 md:p-3 rounded-sm shadow-[inset_0_0_5px_hsla(var(--border)/0.2)] overflow-y-auto">
            {/* Model Selector */}
-           <div className="space-y-2">
+           <div className="space-y-1">
               <Label htmlFor="model-select" className="text-sm font-medium text-secondary font-mono flex items-center">
-                Select AI Model:
+                &gt; Select Model_Source:
                  <button onClick={fetchAndCombineModels} disabled={isLoadingModels} className="ml-2 text-xs text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed">
                     <RefreshCw className={`h-3 w-3 ${isLoadingModels ? 'animate-spin' : ''}`} />
                  </button>
               </Label>
-               {isLoadingModels && !allModels.length ? ( // Show skeleton only on initial load
-                 <Skeleton className="h-10 w-full bg-muted" /> // Use muted background for skeleton
-               ) : modelError && allModels.length === 0 ? ( // Show error only if loading failed AND no models listed
-                   <Alert variant="destructive" className="py-2 px-3 bg-destructive/10 border-destructive/50 text-destructive">
+               {isLoadingModels && !allModels.length ? (
+                 <Skeleton className="h-10 w-full bg-muted/50 rounded-none border border-muted" />
+               ) : modelError && allModels.length === 0 ? (
+                   <Alert variant="destructive" className="py-1 px-2 bg-destructive/10 border-destructive/50 text-destructive rounded-none">
                       <Terminal className="h-4 w-4" />
                       <AlertDescription className="text-xs">{modelError}
                          <button onClick={fetchAndCombineModels} className="underline ml-1">(Retry)</button>
@@ -242,27 +279,28 @@ export default function Home() {
                    onValueChange={(value) => setSelectedModelId(value || undefined)}
                    disabled={isLoadingModels || allModels.length === 0}
                  >
-                    <SelectTrigger id="model-select" className="w-full bg-input border-input font-mono neon-accent focus:ring-ring focus:border-accent">
-                       <SelectValue placeholder="Select a model..." />
+                    {/* Apply neon-glow and terminal styles */}
+                    <SelectTrigger id="model-select" className="w-full bg-input border-border font-mono neon-glow focus:ring-ring focus:border-accent rounded-none text-foreground">
+                       <SelectValue placeholder="[Select Model...]" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover border-border font-mono max-h-[400px] overflow-y-auto">
-                      {/* Map over available providers (Ollama, Google AI) */}
+                    <SelectContent className="bg-popover border-border font-mono max-h-[400px] overflow-y-auto rounded-none shadow-[0_0_10px_hsla(var(--ring)/0.3)]">
                       {(Object.keys(groupedModels) as Array<keyof typeof groupedModels>).map((provider) => (
                           <SelectGroup key={provider}>
                               <SelectLabel className="text-xs text-muted-foreground flex items-center pl-2 pr-2 py-1 font-mono">
                                   {getProviderIcon(provider as CombinedModel['provider'])}
-                                  {provider}
+                                  // {provider}_Models //
                               </SelectLabel>
                               {groupedModels[provider].map((model) => (
                                   <SelectItem
                                      key={model.id}
                                      value={model.id}
-                                     className="cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono" // Retro hover/focus
+                                     // Terminal-style hover/focus
+                                     className="cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono pl-8 rounded-none data-[state=checked]:bg-primary/80"
                                   >
                                       <span className="flex items-center justify-between w-full">
                                           <span>{model.name}</span>
                                           {model.size && (
-                                            <Badge variant="outline" className="ml-2 text-xs px-1 py-0 border-muted text-muted-foreground bg-transparent">
+                                            <Badge variant="outline" className="ml-2 text-xs px-1 py-0 border-muted text-muted-foreground bg-transparent rounded-none">
                                                 {(model.size / 1e9).toFixed(2)} GB
                                             </Badge>
                                           )}
@@ -273,60 +311,83 @@ export default function Home() {
                           </SelectGroup>
                       ))}
                        {allModels.length === 0 && !isLoadingModels && (
-                          <SelectItem value="no-models" disabled className="font-mono">No models found or loaded</SelectItem>
+                          <SelectItem value="no-models" disabled className="font-mono rounded-none">[No Models Available]</SelectItem>
                        )}
                     </SelectContent>
                  </Select>
                )}
               <p className="text-xs text-muted-foreground font-mono">
-                Select a model provider. Ensure Ollama is running for local models. API keys for Google AI are configured server-side.
+                // Ollama requires local server. Cloud models require API keys (server-side).
               </p>
            </div>
 
-           <Separator className="bg-border/50"/>
+           <Separator className="bg-border/50 my-1"/>
 
            {/* Prompt Input */}
-           <div className="flex-shrink-0">
+           <div className="flex-grow flex flex-col">
             <PromptInput
               prompt={prompt}
               setPrompt={setPrompt}
-              onSubmit={handleGenerateCode}
-              isLoading={isLoadingGeneration} // Pass generation loading state
-              disabled={isGenerateDisabled} // Use combined disabled state
+              onSubmit={handleInitialGenerate} // Use specific handler for initial generation
+              isLoading={isLoadingGeneration}
+              disabled={isGenerateDisabled}
+              buttonText="Execute_Generation" // Terminal-style button text
+              textAreaClass="terminal-input flex-grow" // Ensure textarea grows
             />
            </div>
-            {generationError && !isLoadingGeneration && ( // Only show generation error if not loading
-                <Alert variant="destructive" className="mt-4 bg-destructive/10 border-destructive/50 text-destructive font-mono">
+            {generationError && !isLoadingGeneration && (
+                <Alert variant="destructive" className="mt-2 bg-destructive/10 border-destructive/50 text-destructive font-mono rounded-none py-1 px-2">
                   <Terminal className="h-4 w-4" />
-                  <AlertTitle>Error Generating Code</AlertTitle>
-                  <AlertDescription>{generationError}</AlertDescription>
+                  <AlertTitle className="text-sm">! Execution Error !</AlertTitle>
+                  <AlertDescription className="text-xs">{generationError}</AlertDescription>
                 </Alert>
             )}
         </div>
 
-        {/* Vertical Separator */}
-        <Separator orientation="vertical" className="hidden lg:block mx-2 h-auto bg-border/30" />
-        {/* Horizontal Separator for mobile */}
-        <Separator orientation="horizontal" className="lg:hidden my-2 w-auto bg-border/30" />
+        {/* Separator */}
+         <Separator orientation="vertical" className="hidden md:block mx-1 h-auto bg-border/30" />
+         <Separator orientation="horizontal" className="md:hidden my-1 w-auto bg-border/30" />
 
 
-        {/* Right Side: Code Display */}
-        <div className="lg:w-2/3 flex-grow flex flex-col overflow-hidden border border-border rounded-lg shadow-inner bg-card">
-           <CodeDisplay
+        {/* Right Panel: Code Output */}
+        <div className="w-full md:w-2/3 flex-grow flex flex-col overflow-hidden border border-border rounded-sm shadow-[inset_0_0_5px_hsla(var(--border)/0.2)]">
+          <CodeDisplay
              code={generatedCode}
-             title="Generated Code Output"
-             language="tsx" // Default to tsx for React/Next.js context
-             isLoading={isLoadingGeneration} // Pass generation loading state
-           />
-           {/* Future IDE features might go here */}
+             title="// Generated_Output_Buffer //" // Terminal style title
+             language="tsx"
+             isLoading={isLoadingGeneration}
+             containerClassName="flex-grow" // Make code display fill space
+          />
+          {/* Add Edit Button here */}
+          <div className="p-2 border-t border-border flex justify-end">
+             <Button
+               onClick={() => setIsEditPopupOpen(true)}
+               disabled={isEditDisabled}
+               className="btn-neon-secondary font-mono text-xs rounded-none px-3 py-1" // Terminal button style
+             >
+                 <Pencil className="mr-1 h-3 w-3" />
+                 Edit_Code...
+             </Button>
+           </div>
         </div>
       </main>
 
-      <footer className="p-2 border-t border-border text-center text-xs text-muted-foreground bg-card/80 font-mono">
-         {/* Removed OpenRouter/HF */}
-         Powered by Genkit, Ollama &amp; Google AI - Retro Edition © {new Date().getFullYear()}
+       {/* Footer - Minimalist Terminal Style */}
+       <footer className="pt-1 mt-2 border-t-2 border-border text-center text-xs text-muted-foreground font-mono">
+         {/* Use ASCII-like separators */}
+         [ CodeSynth Terminal | Genkit | Ollama | Google AI | {new Date().getFullYear()} ]
       </footer>
+
+       {/* Edit Popup Modal */}
+       {isEditPopupOpen && (
+         <EditPopup
+           initialCode={generatedCode}
+           onSubmit={handleEditSubmit}
+           onClose={() => setIsEditPopupOpen(false)}
+           isLoading={isLoadingGeneration}
+           selectedModelId={selectedModelId} // Pass model ID for context if needed by popup logic
+         />
+       )}
     </div>
   );
 }
-

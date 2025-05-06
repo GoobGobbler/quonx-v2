@@ -2,110 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import a more digital/terminal-like font if desired, e.g., VT323 or Press Start 2P */
+/* Keeping Cutive Mono for now, but can be swapped */
 body {
-  /* Apply typewriter font globally */
   font-family: var(--font-cutive-mono), monospace;
 }
 
 @layer base {
   :root {
-    /* Cool, Muted 60s/70s Theme - Light Mode */
-    --background: 210 10% 96%; /* Very Light Charcoal/Gray */
-    --foreground: 210 15% 15%; /* Dark Charcoal */
+    /* 70s/80s Sci-Fi Terminal Theme - Dark Mode */
+    --background: 220 15% 8%; /* Very Dark Desaturated Blue/Black */
+    --foreground: 130 80% 75%; /* Bright Neon Green/Cyan */
 
-    --card: 210 10% 90%; /* Slightly darker Light Charcoal/Gray */
-    --card-foreground: 210 15% 15%;
+    --card: 220 15% 12%; /* Slightly lighter Dark Blue/Black */
+    --card-foreground: 130 80% 75%; /* Neon Green/Cyan */
 
-    --popover: 210 10% 90%;
-    --popover-foreground: 210 15% 15%;
+    --popover: 220 15% 10%; /* Darker Popover */
+    --popover-foreground: 130 80% 80%; /* Slightly brighter Neon */
 
-    --primary: 180 50% 40%; /* Teal */
-    --primary-foreground: 180 20% 95%; /* Light Teal/Off-white */
+    --primary: 140 70% 55%; /* Vibrant Green */
+    --primary-foreground: 220 15% 5%; /* Very Dark for contrast */
 
-    --secondary: 45 70% 50%; /* Mustard */
-    --secondary-foreground: 45 40% 10%; /* Dark Brown for contrast on Mustard */
+    --secondary: 190 80% 60%; /* Vibrant Cyan/Electric Blue */
+    --secondary-foreground: 220 15% 5%; /* Very Dark for contrast */
 
-    --muted: 210 10% 85%; /* Lighter Gray */
-    --muted-foreground: 210 10% 40%; /* Medium Gray */
+    --muted: 220 10% 30%; /* Muted Dark Gray/Blue */
+    --muted-foreground: 220 10% 65%; /* Lighter Muted Gray/Blue */
 
-    --accent: 170 100% 55%; /* Neon Cyan/Teal Highlight */
-    --accent-foreground: 180 50% 15%; /* Dark Teal for contrast on accent */
+    --accent: 300 80% 65%; /* Vibrant Magenta/Pink */
+    --accent-foreground: 220 15% 5%; /* Very Dark for contrast */
 
-    --destructive: 0 84.2% 60.2%; /* Standard Red */
+    --destructive: 0 80% 60%; /* Bright Red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 10% 75%; /* Medium Gray Border */
-    --input: 210 15% 88%; /* Lighter Gray for Input */
-    --ring: 170 100% 60%; /* Neon Cyan/Teal Ring on focus */
+    --border: 140 50% 40%; /* Neon Green Border */
+    --input: 220 15% 15%; /* Dark Input Background */
+    --ring: 190 90% 70%; /* Bright Cyan Ring on focus */
 
-    --chart-1: 180 50% 50%;  /* Variations of Teal */
-    --chart-2: 45 70% 60%;  /* Variations of Mustard */
-    --chart-3: 210 10% 70%; /* Variations of Gray */
-    --chart-4: 180 30% 30%; /* Darker Teal */
-    --chart-5: 45 50% 40%; /* Darker Mustard */
+    --chart-1: 140 70% 60%;  /* Variations of Green */
+    --chart-2: 190 80% 65%;  /* Variations of Cyan */
+    --chart-3: 300 80% 70%;  /* Variations of Magenta */
+    --chart-4: 140 50% 40%;  /* Darker Green */
+    --chart-5: 190 60% 50%;  /* Darker Cyan */
 
-    --radius: 0.3rem; /* Slightly less rounded */
+    --radius: 0.1rem; /* Sharper corners */
 
     /* Sidebar variables - Adjusting to new theme */
-    --sidebar-background: 210 15% 25%; /* Dark Charcoal */
-    --sidebar-foreground: 210 10% 85%; /* Light Gray/Off-white */
-    --sidebar-primary: 45 70% 50%; /* Mustard */
-    --sidebar-primary-foreground: 45 40% 10%; /* Dark Brown */
-    --sidebar-accent: 180 40% 50%; /* Mid Teal */
-    --sidebar-accent-foreground: 180 20% 95%; /* Light Teal */
-    --sidebar-border: 210 10% 35%; /* Darker Gray Border */
-    --sidebar-ring: 170 100% 60%; /* Neon Cyan/Teal Ring */
+    --sidebar-background: 220 15% 10%; /* Dark Blue/Black */
+    --sidebar-foreground: 130 70% 70%; /* Neon Green/Cyan */
+    --sidebar-primary: 190 80% 60%; /* Cyan */
+    --sidebar-primary-foreground: 220 15% 5%; /* Very Dark */
+    --sidebar-accent: 300 70% 60%; /* Magenta */
+    --sidebar-accent-foreground: 220 15% 95%; /* Almost White */
+    --sidebar-border: 140 50% 30%; /* Darker Neon Green Border */
+    --sidebar-ring: 190 90% 70%; /* Bright Cyan Ring */
   }
 
-  .dark {
-    /* Cool, Muted 60s/70s Theme - Dark Mode */
-    --background: 210 15% 10%; /* Very Dark Charcoal */
-    --foreground: 210 10% 85%; /* Light Gray/Off-white */
+  /* Light mode (optional, but good practice) - Could be a different terminal style */
+  .light {
+    /* Example: Amber Terminal Theme */
+    --background: 30 15% 95%; /* Light Tan/Off-white */
+    --foreground: 30 80% 15%; /* Dark Brown */
 
-    --card: 210 15% 15%; /* Slightly lighter Dark Charcoal */
-    --card-foreground: 210 10% 85%;
+    --card: 30 15% 90%;
+    --card-foreground: 30 80% 15%;
 
-    --popover: 210 15% 15%;
-    --popover-foreground: 210 10% 85%;
+    --popover: 30 15% 90%;
+    --popover-foreground: 30 80% 15%;
 
-    --primary: 180 50% 55%; /* Teal (lighter for dark mode) */
-    --primary-foreground: 210 15% 5%; /* Very Dark Charcoal */
+    --primary: 35 100% 50%; /* Amber */
+    --primary-foreground: 30 80% 5%; /* Very Dark Brown */
 
-    --secondary: 45 70% 60%; /* Mustard (lighter for dark mode) */
-    --secondary-foreground: 210 15% 5%; /* Very Dark Charcoal */
+    --secondary: 45 60% 45%; /* Olive/Brown */
+    --secondary-foreground: 30 15% 95%;
 
-    --muted: 210 10% 25%; /* Dark Gray */
-    --muted-foreground: 210 10% 65%; /* Lighter Muted Gray */
+    --muted: 30 10% 85%;
+    --muted-foreground: 30 10% 40%;
 
-    --accent: 170 100% 60%; /* Neon Cyan/Teal Highlight */
-    --accent-foreground: 210 15% 5%; /* Very Dark Charcoal */
+    --accent: 35 100% 60%; /* Brighter Amber */
+    --accent-foreground: 30 80% 5%;
 
-    --destructive: 0 70% 50%; /* Slightly muted Red */
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 10% 30%; /* Dark Gray Border */
-    --input: 210 10% 20%; /* Darker Gray Input */
-    --ring: 170 100% 65%; /* Neon Cyan/Teal Ring */
+    --border: 35 80% 50%; /* Amber Border */
+    --input: 30 15% 88%;
+    --ring: 35 100% 55%; /* Amber Ring */
 
-    --chart-1: 180 50% 65%;
-    --chart-2: 45 70% 70%;
-    --chart-3: 210 10% 75%;
-    --chart-4: 180 30% 40%;
-    --chart-5: 45 50% 50%;
+    --chart-1: 35 100% 55%;
+    --chart-2: 45 60% 50%;
+    --chart-3: 30 10% 70%;
+    --chart-4: 35 80% 40%;
+    --chart-5: 45 50% 35%;
 
-     /* Sidebar variables - Adjusting to new theme (Dark) */
-    --sidebar-background: 210 15% 12%; /* Dark Charcoal */
-    --sidebar-foreground: 210 10% 80%; /* Light Gray */
-    --sidebar-primary: 45 70% 60%; /* Lighter Mustard */
-    --sidebar-primary-foreground: 210 15% 5%; /* Very Dark Charcoal */
-    --sidebar-accent: 180 40% 45%; /* Mid-Dark Teal */
-    --sidebar-accent-foreground: 210 10% 90%; /* Lighter Gray */
-    --sidebar-border: 210 10% 25%; /* Darker Gray Border */
-    --sidebar-ring: 170 100% 65%; /* Neon Cyan/Teal Ring */
+    --radius: 0.1rem;
+
+    --sidebar-background: 30 15% 88%;
+    --sidebar-foreground: 30 80% 10%;
+    --sidebar-primary: 35 100% 50%;
+    --sidebar-primary-foreground: 30 80% 5%;
+    --sidebar-accent: 45 60% 45%;
+    --sidebar-accent-foreground: 30 15% 95%;
+    --sidebar-border: 35 80% 60%;
+    --sidebar-ring: 35 100% 55%;
   }
 }
 
-/* Add grain texture overlay */
+/* Enhanced Grain Texture */
 body::before {
     content: "";
     position: fixed;
@@ -113,13 +116,14 @@ body::before {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.04; /* Slightly increased opacity */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.06; /* Slightly more visible grain */
     pointer-events: none;
     z-index: 9999;
+    mix-blend-mode: overlay; /* Blend mode for texture */
 }
 
-/* Subtle scan line effect */
+/* Enhanced Scan Line Effect */
 body::after {
     content: "";
     position: fixed;
@@ -127,81 +131,186 @@ body::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(0, 255, 255, 0.01), rgba(255, 215, 0, 0.01), rgba(64, 224, 208, 0.01)); /* Adjusted colors for teal/mustard hints */
-    background-size: 100% 2px, 3px 100%; /* Thinner scan lines */
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, hsla(var(--foreground) / 0.08) 50%), linear-gradient(90deg, hsla(var(--primary) / 0.02), hsla(var(--secondary) / 0.02), hsla(var(--accent) / 0.02)); /* Use theme colors */
+    background-size: 100% 3px, 4px 100%; /* Slightly thicker scan lines */
     z-index: 9998;
     pointer-events: none;
-    animation: scanline 20s linear infinite; /* Slower animation */
-    mix-blend-mode: overlay; /* Experiment with blend modes */
+    animation: scanline 15s linear infinite, flicker 0.05s infinite alternate; /* Faster scanline, add flicker */
+    mix-blend-mode: overlay;
 }
 
 @keyframes scanline {
   0% { background-position: 0 0; }
-  100% { background-position: 0 100%; }
+  100% { background-position: 0 100vh; } /* Animate full height */
+}
+
+@keyframes flicker {
+  0% { opacity: 0.98; }
+  100% { opacity: 1; }
 }
 
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border; /* Use neon border color */
   }
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground; /* Use neon foreground */
+    font-feature-settings: "liga" 0, "calt" 0; /* Disable ligatures for terminal look */
+    text-shadow: 0 0 3px hsla(var(--foreground) / 0.3); /* Subtle text glow */
   }
 }
 
-/* Add styles for neon-lit controls */
-.neon-accent {
-  box-shadow: 0 0 3px hsl(var(--accent)), 0 0 6px hsl(var(--accent)), 0 0 9px hsl(var(--accent));
-  /* Adjust color and spread as needed */
-  transition: box-shadow 0.2s ease-in-out;
+/* Neon Glow Effect for Controls */
+.neon-glow {
+  box-shadow: 0 0 2px hsl(var(--foreground)), 0 0 4px hsl(var(--foreground)), inset 0 0 1px hsl(var(--foreground) / 0.5);
+  border-color: hsl(var(--foreground) / 0.7);
+  transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
-.neon-accent:focus, .neon-accent:hover {
-   box-shadow: 0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--accent)), 0 0 15px hsl(var(--accent)), 0 0 20px hsl(var(--ring));
+.neon-glow:focus, .neon-glow:hover {
+   box-shadow: 0 0 3px hsl(var(--ring)), 0 0 6px hsl(var(--ring)), 0 0 9px hsl(var(--ring)), inset 0 0 2px hsl(var(--ring) / 0.6);
+   border-color: hsl(var(--ring));
+}
+/* Specific application for buttons */
+.btn-neon {
+    @apply neon-glow bg-transparent border text-foreground hover:text-background hover:bg-foreground;
+}
+.btn-neon-secondary {
+     @apply neon-glow bg-transparent border border-secondary text-secondary hover:text-background hover:bg-secondary;
+}
+.btn-neon-destructive {
+     @apply neon-glow bg-transparent border border-destructive text-destructive hover:text-background hover:bg-destructive;
 }
 
-/* Subtle Chromatic Aberration Effect (Apply sparingly to specific elements if desired) */
-.chromatic-aberration {
+
+/* Chromatic Aberration (Optional, use sparingly) */
+.chromatic-aberration-light {
   position: relative;
+  /* Required for data-text */
+  color: transparent; /* Hide original text if using pseudo-elements for effect */
+  background: none; /* Ensure no background interferes */
 }
-.chromatic-aberration::before,
-.chromatic-aberration::after {
-  content: attr(data-text); /* Requires element to have data-text attribute with its content */
+
+/* Use pseudo-elements for the shifted text layers */
+.chromatic-aberration-light::before,
+.chromatic-aberration-light::after {
+  content: attr(data-text); /* Use data-text attribute for content */
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: inherit;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  mix-blend-mode: screen; /* Or other blend modes like 'lighten' */
-  opacity: 0.7;
-}
-.chromatic-aberration::before {
-  text-shadow: -1px 0 hsl(var(--primary) / 0.5), 1px 0 hsl(var(--accent) / 0.5);
-  animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
-}
-.chromatic-aberration::after {
-   text-shadow: 1px 0 hsl(var(--secondary) / 0.5), -1px 0 hsl(var(--destructive) / 0.5);
-   animation: glitch-anim-2 3s infinite linear alternate-reverse;
+  background: none;
+  pointer-events: none; /* Allow interaction with the original element */
+  text-shadow: none; /* Reset any inherited text-shadow */
 }
 
-@keyframes glitch-anim-1 {
-  0% { transform: translate(0); }
-  20% { transform: translate(-1px, 1px); }
-  40% { transform: translate(-1px, -1px); }
-  60% { transform: translate(1px, 1px); }
-  80% { transform: translate(1px, -1px); }
-  100% { transform: translate(0); }
+.chromatic-aberration-light::before {
+  /* Red shift */
+  color: hsl(0 100% 50% / 0.7); /* Adjust color and opacity */
+  transform: translate(-0.5px, -0.5px); /* Adjust shift amount */
+  mix-blend-mode: screen; /* Or 'lighten' */
+  animation: glitch-subtle-1 3s infinite linear alternate-reverse;
 }
-@keyframes glitch-anim-2 {
- 0% { transform: translate(0); }
-  20% { transform: translate(1px, -1px); }
-  40% { transform: translate(1px, 1px); }
-  60% { transform: translate(-1px, 1px); }
-  80% { transform: translate(-1px, -1px); }
-  100% { transform: translate(0); }
+
+.chromatic-aberration-light::after {
+  /* Blue/Cyan shift */
+  color: hsl(180 100% 50% / 0.7); /* Adjust color and opacity */
+  transform: translate(0.5px, 0.5px); /* Adjust shift amount */
+  mix-blend-mode: screen; /* Or 'lighten' */
+  animation: glitch-subtle-2 3.5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-subtle-1 {
+  0%, 100% { transform: translate(-0.5px, -0.5px); }
+  50% { transform: translate(-0.4px, -0.6px); }
+}
+
+@keyframes glitch-subtle-2 {
+   0%, 100% { transform: translate(0.5px, 0.5px); }
+   50% { transform: translate(0.6px, 0.4px); }
+}
+
+
+/* Add blinking cursor effect to textareas/inputs */
+.terminal-input:focus {
+  caret-color: hsl(var(--foreground));
+  animation: blink-caret 1s step-end infinite;
+}
+
+@keyframes blink-caret {
+  from, to { border-right: 2px solid hsl(var(--foreground)); } /* Simulate block cursor */
+  50% { border-right-color: transparent; }
+}
+
+
+/* Style Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background) / 0.5);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground) / 0.6);
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground) / 0.8);
+}
+
+/* Basic popup styling */
+.popup-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: hsla(var(--background) / 0.7);
+    backdrop-filter: blur(3px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.popup-content {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    padding: 1.5rem; /* p-6 */
+    border-radius: var(--radius);
+    box-shadow: 0 0 15px hsla(var(--foreground) / 0.2), 0 0 30px hsla(var(--foreground) / 0.1);
+    max-width: 90%;
+    max-height: 90%;
+    overflow: auto;
+    animation: scaleIn 0.3s ease-out;
+    position: relative; /* For close button positioning */
+}
+
+.popup-close-button {
+    position: absolute;
+    top: 0.5rem; /* p-2 */
+    right: 0.5rem; /* p-2 */
+    background: transparent;
+    border: none;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    padding: 0.25rem; /* p-1 */
+}
+.popup-close-button:hover {
+    color: hsl(var(--foreground));
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }

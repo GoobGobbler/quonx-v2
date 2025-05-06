@@ -5,13 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils"; // Import cn
 
 interface PromptInputProps {
   prompt: string;
   setPrompt: (prompt: string) => void;
   onSubmit: () => void;
   isLoading: boolean; // Tracks if the AI generation is in progress
-  disabled?: boolean; // Generic disabled state (e.g., while models load or if no model selected)
+  disabled?: boolean; // Generic disabled state
+  buttonText?: string; // Custom button text
+  textAreaClass?: string; // Allow passing class to textarea
 }
 
 export function PromptInput({
@@ -20,6 +23,8 @@ export function PromptInput({
   onSubmit,
   isLoading,
   disabled = false,
+  buttonText = "Generate Code", // Default button text
+  textAreaClass
 }: PromptInputProps) {
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(event.target.value);
@@ -27,50 +32,51 @@ export function PromptInput({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Submit only if not loading and not generally disabled
     if (!isLoading && !disabled) {
         onSubmit();
     }
   };
 
-  // The button should be disabled if:
-  // 1. AI generation is loading (isLoading)
-  // 2. The component is generally disabled (disabled)
-  // 3. The prompt is empty or only whitespace
   const isButtonDisabled = isLoading || disabled || !prompt.trim();
-  // The textarea should be disabled if loading or generally disabled
   const isTextareaDisabled = isLoading || disabled;
 
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid w-full gap-1.5">
-        <Label htmlFor="prompt" className="font-mono text-secondary">Enter your application prompt:</Label>
+    <form onSubmit={handleSubmit} className="space-y-3 flex flex-col h-full">
+      <div className="grid w-full gap-1.5 flex-grow">
+        <Label htmlFor="prompt" className="font-mono text-secondary text-sm">
+            &gt; Input_Prompt:
+        </Label>
         <Textarea
-          placeholder="Describe the application you want to build... e.g., 'Create a simple React counter component in a file named Counter.tsx'"
+          placeholder="// Enter prompt: Describe application, file structure, features..."
           id="prompt"
           value={prompt}
           onChange={handleInputChange}
-          rows={5}
-          className="text-base font-mono bg-input border-border focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30 disabled:opacity-70 disabled:cursor-not-allowed" // Added disabled styles
-          disabled={isTextareaDisabled} // Use derived disabled state
+          // Use flex-grow to make textarea fill available space
+          className={cn(
+              "text-sm font-mono bg-input border border-border focus:ring-1 focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30 disabled:opacity-70 disabled:cursor-not-allowed rounded-none resize-none flex-grow terminal-input", // Apply terminal styles
+              textAreaClass // Apply passed classes
+              )}
+          disabled={isTextareaDisabled}
+          rows={5} // Initial rows, but flex-grow handles height
         />
-        <p className="text-sm text-muted-foreground font-mono">
-          Be specific about files, components, and functionality.
+        <p className="text-xs text-muted-foreground font-mono">
+          // Use specific instructions for files, components, languages.
         </p>
       </div>
       <Button
         type="submit"
-        disabled={isButtonDisabled} // Use derived disabled state
-        className="w-full sm:w-auto bg-secondary hover:bg-secondary/90 text-secondary-foreground font-mono neon-accent disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none" // Retro styling & disabled state
+        disabled={isButtonDisabled}
+        // Apply neon button style and terminal look
+        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 mt-auto" // mt-auto pushes button down in flex container
       >
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Generating...
+            Processing...
           </>
         ) : (
-          "Generate Code"
+          buttonText // Use the buttonText prop
         )}
       </Button>
     </form>
