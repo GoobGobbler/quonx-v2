@@ -6,9 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Choose a dark, terminal-friendly theme like 'oneDark', 'okaidia', 'materialDark'
-// Using 'oneDark' as it's commonly included and avoids the potential resolution issue with 'vscDarkPlus'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Use CJS path for the style as ESM path seems to cause resolution issues in Next.js
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils"; // Import cn for conditional classes
 

@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { X, Loader2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Import a known working style like oneDark instead of vscDarkPlus or the problematic default 'coy'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Use CJS path for the style as ESM path seems to cause resolution issues in Next.js
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
 interface EditPopupProps {
   initialCode: string;
