@@ -67,7 +67,7 @@ export function CodeDisplay({ code, title = "Generated Code" }: CodeDisplayProps
             language="typescript" // Adjust language based on expected output, or make dynamic
             style={vscDarkPlus} // Or choose another theme
             customStyle={{ margin: 0, padding: '1rem', height: '100%', overflow: 'auto', background: 'hsl(var(--card))' }}
-            codeTagProps={{ style: { fontFamily: 'var(--font-geist-mono)' } }} // Use Geist Mono if available
+            codeTagProps={{ style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' } }} // Use standard monospace stack
             wrapLongLines={true}
           >
             {code || "No code generated yet."}
