@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['react-syntax-highlighter'], // Add this if using server components
+  },
 };
 
 export default nextConfig;
