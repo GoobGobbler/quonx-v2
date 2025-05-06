@@ -44,9 +44,11 @@ export function PromptInput({
 
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 flex flex-col h-full">
+    // Ensure form takes full height and uses flex column
+    <form onSubmit={handleSubmit} className="space-y-2 flex flex-col h-full">
+      {/* Make the grid item containing the label and textarea grow */}
       <div className="grid w-full gap-1.5 flex-grow">
-        <Label htmlFor="prompt" className="font-mono text-secondary text-sm">
+        <Label htmlFor="prompt" className="font-mono text-secondary text-sm flex-shrink-0">
             &gt; Input_Prompt:
         </Label>
         <Textarea
@@ -55,20 +57,23 @@ export function PromptInput({
           value={prompt}
           onChange={handleInputChange}
           className={cn(
-              "text-sm font-mono bg-input border border-border focus:ring-1 focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30 disabled:opacity-70 disabled:cursor-not-allowed rounded-none resize-none flex-grow terminal-input", // Apply terminal styles
+              // Apply terminal styles, ensure resize-none and flex-grow
+              "text-sm font-mono bg-input border border-border focus:ring-1 focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30 disabled:opacity-70 disabled:cursor-not-allowed rounded-none resize-none flex-grow min-h-[100px]", // Added min-h
+              "terminal-input", // Keep custom class for effects
               textAreaClass
               )}
           disabled={isTextareaDisabled}
-          rows={5}
+          // Remove fixed rows, rely on flex-grow
         />
-        <p className="text-xs text-muted-foreground font-mono">
+        <p className="text-xs text-muted-foreground font-mono flex-shrink-0">
           // Use specific instructions for files, components, languages, tests, security.
         </p>
       </div>
+      {/* Button should not grow, place it at the bottom */}
       <Button
         type="submit"
         disabled={isButtonDisabled}
-        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 mt-auto"
+        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 flex-shrink-0" // Added flex-shrink-0
       >
         {isLoading ? (
           <>
