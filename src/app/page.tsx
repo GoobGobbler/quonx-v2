@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -7,7 +8,7 @@ import { CodeDisplay } from "@/components/code-display";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info } from "lucide-react"; // Added Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info
+import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction } from "lucide-react"; // Added Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,48 +17,47 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditPopup } from "@/components/edit-popup";
 import { SettingsPanel } from "@/components/settings-panel"; // Import SettingsPanel
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 // Define structure for combined models list
 interface CombinedModel {
   id: string; // Fully qualified name (e.g., "ollama/llama3", "googleai/gemini-1.5-flash")
   name: string; // Display name (e.g., "llama3", "Gemini 1.5 Flash")
-  provider: 'Ollama' | 'Google AI'; // Expand this as more providers are *actually* configured in genkit.ts
+  provider: 'Ollama' | 'Google AI' | 'OpenRouter' | 'Hugging Face'; // Expand this as more providers are *actually* configured
   size?: number; // Optional size in bytes (primarily for Ollama)
   description?: string; // Optional description
 }
 
-// --- Hardcoded Models (Aligned with genkit.ts configuration) ---
-// Only include models from providers that are actually configured with API keys in src/ai/genkit.ts
-const CONFIGURED_CLOUD_MODELS: CombinedModel[] = [
-  // Google AI / Gemini Models (Requires GOOGLE_API_KEY)
+// Key for localStorage settings
+const SETTINGS_STORAGE_KEY = 'codesynth_settings';
+
+// --- Hardcoded Models (Examples - Actual list depends on fetched/configured) ---
+// Add more known models here as needed, especially for cloud providers
+// These serve as examples and might not be active unless API keys are set in settings
+const POTENTIAL_CLOUD_MODELS: CombinedModel[] = [
+  // Google AI / Gemini Models (Requires GOOGLE_API_KEY in Settings)
   { id: 'googleai/gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google AI', description: 'Fast, versatile model' },
   { id: 'googleai/gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', provider: 'Google AI', description: 'Most capable model' },
 
-  // Add OpenRouter models here if configured in genkit.ts (Requires OPENROUTER_API_KEY)
-  // { id: 'openrouter/anthropic/claude-3-haiku', name: 'Claude 3 Haiku (OpenRouter)', provider: 'OpenRouter', description: 'Fast, affordable model' },
-  // { id: 'openrouter/google/gemini-flash-1.5', name: 'Gemini 1.5 Flash (OpenRouter)', provider: 'OpenRouter', description: 'Fast, versatile model via OR' },
+  // OpenRouter models (Requires OPENROUTER_API_KEY in Settings)
+  { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', provider: 'OpenRouter', description: 'High performance model via OR' },
+  { id: 'openrouter/google/gemini-pro-1.5', name: 'Gemini 1.5 Pro (OR)', provider: 'OpenRouter', description: 'Top model via OR' },
+  { id: 'openrouter/meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B (OR)', provider: 'OpenRouter', description: 'Meta\'s Instruct model via OR' },
+  { id: 'openrouter/mistralai/mistral-large-latest', name: 'Mistral Large (OR)', provider: 'OpenRouter', description: 'Mistral Large model via OR' },
+  { id: 'openrouter/microsoft/wizardlm-2-8x22b', name: 'WizardLM-2 8x22B (OR)', provider: 'OpenRouter', description: 'Microsoft research model via OR'},
 
-  // Add Hugging Face models here if configured in genkit.ts (Requires HF_API_KEY)
-  // { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Code-focused model' },
+
+  // Hugging Face models (Requires HF_API_KEY in Settings - Note: HF plugin might not be available)
+  // { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Code-focused model via HF' },
 ];
 // --- End Hardcoded Models ---
 
-// Conceptual Validation Pipeline Function (Placeholder)
+// Placeholder function for conceptual validation pipeline
 async function runValidationPipeline(code: string, prompt?: string): Promise<{ success: boolean; message?: string }> {
     console.log("Running conceptual validation pipeline...", { codeLength: code.length, prompt });
-    // In a real implementation, this would involve:
-    // 1. Syntax checking (e.g., using a parser like esprima or babel)
-    // 2. Linting (e.g., using ESLint programmatically)
-    // 3. Type checking (e.g., using TypeScript compiler API)
-    // 4. Dependency analysis (checking imports)
-    // 5. Basic security checks (simple regex for common issues)
     await new Promise(resolve => setTimeout(resolve, 300)); // Simulate async work
-    // Simulate occasional failure for demonstration
-    // const success = Math.random() > 0.1;
-    // For now, always return success
-    const success = true;
-    return { success: success, message: success ? "Validation passed" : "Conceptual validation failed: Syntax error detected." };
+    const success = true; // Always success for now
+    return { success: success, message: success ? "Validation passed (Conceptual)" : "Conceptual validation failed." };
 }
 
 
@@ -75,67 +75,103 @@ export default function Home() {
   const [modelError, setModelError] = useState<string | null>(null);
 
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // State for settings panel
-  const [validationStatus, setValidationStatus] = useState<string>("Idle"); // State for validation status
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [validationStatus, setValidationStatus] = useState<string>("Idle");
 
-  // Fetch local Ollama models and combine with configured cloud models
+  // Fetch local Ollama models and combine with *configured* cloud models based on settings
   const fetchAndCombineModels = useCallback(async () => {
     setIsLoadingModels(true);
     setModelError(null);
     let localModels: CombinedModel[] = [];
     let ollamaError: string | null = null;
+    let configuredCloudModels: CombinedModel[] = [];
 
+    // Load settings from localStorage
+    let settings: Record<string, any> = {};
+    if (typeof window !== 'undefined') {
+        try {
+            const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (storedSettings) {
+                settings = JSON.parse(storedSettings);
+            }
+        } catch (e) {
+            console.error("Failed to parse settings from localStorage:", e);
+        }
+    }
+
+    // Fetch Ollama models
     try {
         const fetchedOllamaModels = await listLocalOllamaModels();
         localModels = fetchedOllamaModels.map(m => ({
-            id: `ollama/${m.name}`, // Prepend 'ollama/' prefix
+            id: `ollama/${m.name}`,
             name: m.name,
             provider: 'Ollama',
             size: m.size,
-            description: `${m.details.family || 'Unknown Family'} (${(m.size / 1e9).toFixed(2)} GB)`
+            description: `${m.details.family || 'Unknown'} (${(m.size / 1e9).toFixed(2)} GB)`
         }));
     } catch (err: any) {
         console.warn("Could not fetch local Ollama models:", err);
-        ollamaError = err.message || 'Failed to connect to local Ollama server. Is it running?';
+        ollamaError = err.message || 'Failed to connect to local Ollama server (http://127.0.0.1:11434). Is it running?';
     }
+
+    // Check settings for API keys and add corresponding cloud models
+    if (settings.googleApiKey) {
+        configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Google AI'));
+    }
+    if (settings.openRouterApiKey) {
+         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
+    }
+    // if (settings.huggingFaceApiKey) {
+    //     configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
+    // }
+
 
     // Combine available model sources
     const combined = [
         ...(ollamaError ? [] : localModels), // Only include Ollama if no error
-        ...CONFIGURED_CLOUD_MODELS, // Include *only* configured cloud models
+        ...configuredCloudModels, // Include cloud models *only if* keys are configured
     ];
     setAllModels(combined);
 
     // Set a default model intelligently
     if (!selectedModelId && combined.length > 0) {
         const firstGoogle = combined.find(m => m.provider === 'Google AI');
+        const firstOpenRouter = combined.find(m => m.provider === 'OpenRouter');
         const firstOllama = combined.find(m => m.provider === 'Ollama');
-        // Prioritize Google, then Ollama, then first available
-        setSelectedModelId(firstGoogle?.id || firstOllama?.id || combined[0].id);
+        // Prioritize Google, OpenRouter, Ollama, then first available
+        setSelectedModelId(firstGoogle?.id || firstOpenRouter?.id || firstOllama?.id || combined[0].id);
     } else if (selectedModelId && !combined.some(m => m.id === selectedModelId)) {
         // If current selection is no longer valid, reset default
         const firstGoogle = combined.find(m => m.provider === 'Google AI');
+        const firstOpenRouter = combined.find(m => m.provider === 'OpenRouter');
         const firstOllama = combined.find(m => m.provider === 'Ollama');
-        setSelectedModelId(firstGoogle?.id || firstOllama?.id || (combined.length > 0 ? combined[0].id : undefined));
+        setSelectedModelId(firstGoogle?.id || firstOpenRouter?.id || firstOllama?.id || (combined.length > 0 ? combined[0].id : undefined));
     } else if (combined.length === 0) {
          setSelectedModelId(undefined); // No models found
     }
 
     // Handle errors/warnings
-    if (ollamaError && combined.length === CONFIGURED_CLOUD_MODELS.length) {
-        // Only Ollama failed, show warning toast if cloud models are still available
+    let errorMessage = "";
+    let warningMessage = "";
+
+    if (ollamaError && configuredCloudModels.length > 0) {
+        warningMessage = `${ollamaError}. Cloud models are available.`;
+    } else if (ollamaError && configuredCloudModels.length === 0) {
+        errorMessage = `${ollamaError}. Also, no cloud providers seem to be configured with API keys in Settings.`;
+    } else if (combined.length === 0 && !ollamaError) {
+        errorMessage = "No AI models available. Ensure the Ollama server is running or configure cloud provider API keys in Settings.";
+    }
+
+    if (warningMessage) {
         toast({
-            variant: "default", // Use default (less alarming) style for warning
+            variant: "default",
             title: "Ollama Connection Warning",
-            description: `${ollamaError}. Cloud models are available.`,
+            description: warningMessage,
             className: "font-mono border-secondary text-secondary",
         });
-    } else if (ollamaError && combined.length === 0) {
-        // All models failed (Ollama error and no cloud models configured/available)
-        setModelError(ollamaError); // Set state to display persistent error
-    } else if (combined.length === 0 && !ollamaError) {
-        // No Ollama error, but no cloud models configured/available either
-        setModelError("No AI models available. Please configure cloud providers (Google AI, etc.) in src/ai/genkit.ts with API keys, or ensure the Ollama server is running.");
+    }
+    if (errorMessage) {
+         setModelError(errorMessage); // Set state to display persistent error
     }
 
 
@@ -212,7 +248,7 @@ export default function Home() {
         setIsLoadingGeneration(false);
         return;
     }
-    setValidationStatus("Pre-Validation Passed");
+    setValidationStatus("Pre-Validation Passed. Generating...");
 
     try {
       const input: GenerateCodeFromPromptInput = {
@@ -264,7 +300,7 @@ export default function Home() {
       // Keep previous code state intact on error, especially during edits
     } finally {
       setIsLoadingGeneration(false);
-      // Don't reset validation status here, let it show the final state (Pass/Fail/Error)
+      // Keep validation status showing the final outcome until next action
     }
   };
 
@@ -285,12 +321,11 @@ export default function Home() {
 
   // Handler for the retry button in the error alert
   const handleRetry = () => {
+      // Simple retry always uses the main prompt for now
       if (prompt) {
           handleInitialGenerate();
-      } else if (isEditPopupOpen) {
-          // Logic to get the prompt from the edit popup if it's open
-          // This requires passing the prompt state or a getter to the EditPopup or managing it here
-          console.warn("Retry from edit popup not fully implemented");
+      } else {
+           toast({ variant: "destructive", title: "ERR: No Prompt to Retry", description: "Enter a prompt first.", className: "font-mono" });
       }
   };
 
@@ -299,16 +334,15 @@ export default function Home() {
       switch (provider) {
           case 'Ollama': return <Server className="h-4 w-4 mr-2 text-secondary flex-shrink-0" />;
           case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-primary flex-shrink-0" />;
-          // Add icons for OpenRouter, Hugging Face when implemented
-          // case 'OpenRouter': return <CloudCog className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0" />;
-          // case 'Hugging Face': return <span className="mr-2 text-yellow-400">🤗</span>;
-          default: return null;
+          case 'OpenRouter': return <CloudCog className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0" />; // Example OR icon
+          case 'Hugging Face': return <span className="mr-2 text-yellow-400 flex-shrink-0">🤗</span>; // Example HF icon
+          default: return <Box className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />; // Default box icon
       }
   };
 
   // Group models by provider for the Select component
   const groupedModels = allModels.reduce((acc, model) => {
-      const provider = model.provider; // Add other providers as needed
+      const provider = model.provider;
       (acc[provider] = acc[provider] || []).push(model);
       return acc;
   }, {} as Record<CombinedModel['provider'], CombinedModel[]>);
@@ -320,20 +354,35 @@ export default function Home() {
 
 
   return (
+   <TooltipProvider> {/* Wrap main content in TooltipProvider */}
     <div className="flex flex-col h-screen bg-background text-foreground p-1 md:p-2 border-2 border-border shadow-[inset_0_0_10px_hsla(var(--foreground)/0.1)] rounded-sm overflow-hidden">
       {/* Header */}
       <header className="p-2 border-b-2 border-border mb-2 flex justify-between items-center flex-shrink-0">
          <div>
              <h1 className="text-lg md:text-xl font-bold text-primary font-mono chromatic-aberration-light" data-text="CodeSynth_Terminal//AI-IDE">CodeSynth_Terminal//AI-IDE</h1>
-             <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI-Assisted Development Interface v1.2</p>
+             <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI-Assisted Development Interface v1.3</p>
          </div>
           <div className="flex items-center space-x-3">
-             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1" onClick={() => setIsSettingsOpen(true)}>
-                <Settings className="h-4 w-4" />
-                <span className="sr-only">Settings</span>
-            </Button>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1" onClick={() => setIsSettingsOpen(true)}>
+                        <Settings className="h-4 w-4" />
+                        <span className="sr-only">Settings</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="font-mono text-xs bg-popover text-popover-foreground border-border">
+                    <p>Open Settings</p>
+                </TooltipContent>
+            </Tooltip>
              <span className="text-xs text-muted-foreground font-mono hidden md:inline">STATUS:</span>
-             <div className={`w-2.5 h-2.5 rounded-full ${isLoadingGeneration ? 'bg-yellow-500 animate-pulse' : (generationError ? 'bg-destructive' : 'bg-primary')}`}></div>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className={`w-2.5 h-2.5 rounded-full ${isLoadingGeneration ? 'bg-yellow-500 animate-pulse' : (generationError ? 'bg-destructive' : 'bg-green-500')}`}></div>
+                </TooltipTrigger>
+                 <TooltipContent side="bottom" className="font-mono text-xs bg-popover text-popover-foreground border-border">
+                    <p>{isLoadingGeneration ? 'Generating...' : generationError ? 'Error' : 'Idle / Ready'}</p>
+                 </TooltipContent>
+             </Tooltip>
           </div>
       </header>
 
@@ -348,11 +397,18 @@ export default function Home() {
                 // ├── src<br/>
                 // │   ├── app<br/>
                 // │   │   └── page.tsx<br/>
-                // │   └── components<br/>
-                // │       └── ... <br/>
+                // │   ├── components<br/>
+                // │   │   └── ... <br/>
+                // │   └── ai<br/>
+                // │       └── flows<br/>
                 // └── package.json<br/>
-                // (Placeholder Content)
+                 <span className="text-yellow-500/70">// (File Explorer Not Implemented)</span>
             </div>
+             <div className="mt-auto pt-2 border-t border-border/30 text-center">
+                  <Button variant="ghost" size="sm" className="text-xs font-mono text-muted-foreground hover:text-foreground w-full justify-start" disabled>
+                    <GitBranch className="h-3 w-3 mr-1" /> Git Sync
+                  </Button>
+             </div>
          </div>
          <Separator orientation="vertical" className="hidden lg:block h-auto bg-border/30" />
          {/* --- End Conceptual Panels --- */}
@@ -365,9 +421,16 @@ export default function Home() {
                <div className="space-y-1">
                   <Label htmlFor="model-select" className="text-sm font-medium text-secondary font-mono flex items-center">
                     &gt; Select Model_Source:
-                     <button onClick={fetchAndCombineModels} disabled={isLoadingModels} className="ml-2 text-xs text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed p-0.5 rounded border border-transparent hover:border-accent">
-                        <RefreshCw className={`h-3 w-3 ${isLoadingModels ? 'animate-spin' : ''}`} />
-                     </button>
+                     <Tooltip>
+                        <TooltipTrigger asChild>
+                           <button onClick={fetchAndCombineModels} disabled={isLoadingModels} className="ml-2 text-xs text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed p-0.5 rounded border border-transparent hover:border-accent">
+                              <RefreshCw className={`h-3 w-3 ${isLoadingModels ? 'animate-spin' : ''}`} />
+                           </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="font-mono text-xs bg-popover text-popover-foreground border-border">
+                           <p>Refresh Model List</p>
+                        </TooltipContent>
+                     </Tooltip>
                   </Label>
                    {isLoadingModels && !allModels.length ? (
                      <Skeleton className="h-10 w-full bg-muted/50 rounded-none border border-muted" />
@@ -399,7 +462,7 @@ export default function Home() {
                                       <SelectItem
                                          key={model.id}
                                          value={model.id}
-                                         className="cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono pl-8 rounded-none data-[state=checked]:bg-primary/80 flex flex-col items-start"
+                                         className="cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono pl-8 rounded-none data-[state=checked]:bg-primary/80 data-[state=checked]:text-primary-foreground flex flex-col items-start"
                                       >
                                           <div className="flex items-center justify-between w-full">
                                               <span className="truncate">{model.name}</span>
@@ -415,13 +478,13 @@ export default function Home() {
                               </SelectGroup>
                           ))}
                            {allModels.length === 0 && !isLoadingModels && (
-                              <SelectItem value="no-models" disabled className="font-mono rounded-none">[No Models Available]</SelectItem>
+                              <SelectItem value="no-models" disabled className="font-mono rounded-none">[No Models Available - Check Settings/Ollama]</SelectItem>
                            )}
                         </SelectContent>
                      </Select>
                    )}
                   <p className="text-xs text-muted-foreground font-mono">
-                    // Ollama requires local server. Cloud models need API keys.
+                    // Ensure API keys are set in Settings for cloud models.
                   </p>
                </div>
 
@@ -458,13 +521,13 @@ export default function Home() {
                     <Badge
                         variant={
                             validationStatus.startsWith("Failed") || validationStatus === "Error" ? "destructive" :
-                            validationStatus.startsWith("Running") ? "secondary" :
+                            validationStatus.startsWith("Running") || validationStatus.includes("Generating") ? "secondary" :
                             validationStatus.includes("Passed") ? "default" : // Use default (primary) for success
                             "outline" // Idle
                         }
                         className={`text-[10px] px-1.5 py-0 rounded-none font-mono ${
                              validationStatus.includes("Passed") ? 'bg-primary/20 border-primary/50 text-primary' :
-                             validationStatus.startsWith("Running") ? 'animate-pulse bg-secondary/20 border-secondary/50 text-secondary' : ''
+                             validationStatus.startsWith("Running") || validationStatus.includes("Generating") ? 'animate-pulse bg-secondary/20 border-secondary/50 text-secondary' : ''
                         }`}
                         >
                          {validationStatus}
@@ -487,14 +550,25 @@ export default function Home() {
                  containerClassName="flex-grow" // Make code display fill space
               />
               <div className="p-2 border-t border-border flex justify-end flex-shrink-0">
-                 <Button
-                   onClick={() => setIsEditPopupOpen(true)}
-                   disabled={isEditDisabled}
-                   className="btn-neon-secondary font-mono text-xs rounded-none px-3 py-1"
-                 >
-                     <Pencil className="mr-1 h-3 w-3" />
-                     Edit_Code...
-                 </Button>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* Wrap button in span for Tooltip when disabled */}
+                      <span tabIndex={isEditDisabled ? 0 : -1}>
+                         <Button
+                           onClick={() => setIsEditPopupOpen(true)}
+                           disabled={isEditDisabled}
+                           className="btn-neon-secondary font-mono text-xs rounded-none px-3 py-1"
+                           aria-disabled={isEditDisabled} // For accessibility
+                         >
+                             <Pencil className="mr-1 h-3 w-3" />
+                             Edit_Code...
+                         </Button>
+                       </span>
+                    </TooltipTrigger>
+                     <TooltipContent side="top" className="font-mono text-xs bg-popover text-popover-foreground border-border">
+                        <p>{isEditDisabled && !generatedCode ? 'Generate code first to enable editing.' : isEditDisabled && isLoadingGeneration ? 'Wait for generation to finish.' : 'Edit the generated code with new instructions.'}</p>
+                    </TooltipContent>
+                 </Tooltip>
                </div>
             </div>
          </div>
@@ -503,19 +577,24 @@ export default function Home() {
         {/* --- Conceptual Panels (Placeholders) --- */}
         <Separator orientation="vertical" className="hidden lg:block h-auto bg-border/30" />
          <div className="hidden lg:flex lg:w-1/4 flex-col border border-border p-2 rounded-sm bg-card/50 overflow-hidden">
-            <h3 className="text-sm font-mono text-secondary mb-2 flex items-center"><MessageSquare className="h-4 w-4 mr-1"/> Agent_Chat</h3>
-             <div className="flex-grow overflow-auto text-xs text-muted-foreground font-mono">
-                 // Code Assistant: Ready...<br/>
-                 // Project Architect: Planning...<br/>
-                 // (Placeholder Content)
+            <h3 className="text-sm font-mono text-secondary mb-2 flex items-center"><Bot className="h-4 w-4 mr-1"/> AI_Agents</h3>
+             <div className="flex-grow overflow-auto text-xs text-muted-foreground font-mono space-y-1">
+                 <p>// Code Assistant: <span className="text-green-400/80">Ready</span></p>
+                 <p>// Project Architect: <span className="text-yellow-400/80">Planning...</span></p>
+                 <p className="text-yellow-500/70">// (Agent Chat Not Implemented)</p>
              </div>
-              <h3 className="text-sm font-mono text-secondary mt-2 pt-2 border-t border-border/50 mb-1 flex items-center"><Info className="h-4 w-4 mr-1"/> MLOps/Info</h3>
-              <div className="text-xs text-muted-foreground font-mono">
-                 // Experiments: 0 active<br/>
-                 // Security Scan: Pass<br/>
-                 // Git Status: Synced<br/>
-                 // (Placeholder Content)
+              <h3 className="text-sm font-mono text-secondary mt-2 pt-2 border-t border-border/50 mb-1 flex items-center"><Info className="h-4 w-4 mr-1"/> System_Info</h3>
+              <div className="text-xs text-muted-foreground font-mono space-y-0.5">
+                 <p>// Security Scan: <span className="text-green-400/80">Pass (Conceptual)</span></p>
+                 <p>// MLOps: <span className="text-yellow-500/70">Not Connected</span></p>
+                 <p>// Collaboration: <span className="text-yellow-500/70">Offline</span></p>
+                 <p className="text-yellow-500/70">// (Integrations Not Implemented)</p>
               </div>
+               <div className="mt-auto pt-2 border-t border-border/30 text-center">
+                  <Button variant="ghost" size="sm" className="text-xs font-mono text-muted-foreground hover:text-foreground w-full justify-start" disabled>
+                    <Construction className="h-3 w-3 mr-1" /> Build & Deploy
+                  </Button>
+             </div>
          </div>
          {/* --- End Conceptual Panels --- */}
 
@@ -523,7 +602,7 @@ export default function Home() {
 
        {/* Footer */}
        <footer className="pt-1 mt-2 border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-         [ CodeSynth Terminal | Genkit: {getProviderNames(allModels)} | {(typeof window !== 'undefined' && new Date().getFullYear()) || ''} ]
+         [ CodeSynth Terminal | Models: {getProviderNames(allModels)} | &copy; {(typeof window !== 'undefined' && new Date().getFullYear()) || ''} ]
       </footer>
 
        {/* Edit Popup Modal */}
@@ -533,21 +612,29 @@ export default function Home() {
            onSubmit={handleEditSubmit}
            onClose={() => setIsEditPopupOpen(false)}
            isLoading={isLoadingGeneration}
-           selectedModelId={selectedModelId}
+           selectedModelId={selectedModelId} // Pass selected model for context
          />
        )}
 
-       {/* Settings Popup/Panel Component */}
-       {isSettingsOpen && <SettingsPanel onClose={() => setIsSettingsOpen(false)} />}
+       {/* Settings Panel Component */}
+       {/* Pass fetchAndCombineModels to SettingsPanel so it can trigger a refresh on save */}
+       {isSettingsOpen && <SettingsPanel onClose={() => {setIsSettingsOpen(false); fetchAndCombineModels();}} />}
     </div>
+   </TooltipProvider>
   );
 }
 
 // Helper function to get unique provider names from the model list
 function getProviderNames(models: CombinedModel[]): string {
+    if (!models || models.length === 0) return "None Loaded";
     const providers = new Set(models.map(m => m.provider));
     const providerList = Array.from(providers);
-    if (providerList.length === 0) return "No Providers";
-    if (providerList.length > 2) return `${providerList.slice(0, 2).join(', ')} & Others`;
+    if (providerList.length === 0) return "None Configured";
+    // Sort providers for consistent display
+    providerList.sort((a, b) => {
+       const order = ['Ollama', 'Google AI', 'OpenRouter', 'Hugging Face'];
+       return order.indexOf(a) - order.indexOf(b);
+    });
+    if (providerList.length > 3) return `${providerList.slice(0, 3).join('/')} + Others`;
     return providerList.join(' | ');
 }

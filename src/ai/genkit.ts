@@ -5,35 +5,50 @@ import { genkit, configureGenkit } from 'genkit';
 // import { huggingFace } from '@genkit-ai/huggingface'; // Removed as package@1.8.0 not found
 import { googleAI } from '@genkit-ai/googleai';
 // Ollama models are accessed dynamically, no direct plugin import needed from genkitx-ollama
+import type { Plugin } from 'genkit'; // Import Plugin type
 import { z } from 'zod'; // Ensure zod is imported if used later
 
 // Load environment variables
 import { config } from 'dotenv';
 config();
 
-// Configure Genkit with available AI providers
-// Using configureGenkit for setup, ai = genkit() for global instance
+// Initialize plugins array
+const plugins: Plugin<any>[] = [];
+
+// Conditionally add Google AI plugin if API key is available
+if (process.env.GOOGLE_API_KEY) {
+  plugins.push(googleAI({ apiKey: process.env.GOOGLE_API_KEY }));
+  console.log("Genkit: Google AI plugin configured.");
+} else {
+  console.warn("Genkit: GOOGLE_API_KEY not found in environment. Google AI plugin disabled.");
+}
+
+// Conditionally add OpenRouter plugin if API key is available (Keep commented until package exists)
+// if (process.env.OPENROUTER_API_KEY) {
+//   plugins.push(openRouter({ apiKey: process.env.OPENROUTER_API_KEY }));
+//   console.log("Genkit: OpenRouter plugin configured.");
+// } else {
+//   console.warn("Genkit: OPENROUTER_API_KEY not found in environment. OpenRouter plugin disabled.");
+// }
+
+// Conditionally add Hugging Face plugin if API key is available (Keep commented until package exists)
+// if (process.env.HF_API_KEY) {
+//   plugins.push(huggingFace({ apiKey: process.env.HF_API_KEY }));
+//   console.log("Genkit: Hugging Face plugin configured.");
+// } else {
+//   console.warn("Genkit: HF_API_KEY not found in environment. Hugging Face plugin disabled.");
+// }
+
+// Note: Ollama models are accessed via their fully qualified names
+// e.g., ai.model('ollama/llama3') without needing an explicit ollama plugin registration here.
+// The genkitx-ollama package handles the underlying communication.
+// We assume it's available if the user intends to use Ollama models.
+console.log("Genkit: Ollama models can be accessed dynamically (e.g., 'ollama/llama3') if genkitx-ollama is installed and Ollama server is running.");
+
+
+// Configure Genkit with the dynamically added plugins
 configureGenkit({
-  plugins: [
-    // OpenRouter (Cloud - requires API key) - Commented out due to package not found
-    // openRouter({
-    //   apiKey: process.env.OPENROUTER_API_KEY, // Get key from .env
-    // }),
-
-    // Hugging Face Inference API (Cloud - requires API key) - Commented out due to package not found
-    // huggingFace({
-    //  apiKey: process.env.HF_API_KEY, // Get key from .env
-    // }),
-
-    // Google AI / Gemini (Cloud - requires API key)
-    googleAI({
-      apiKey: process.env.GOOGLE_API_KEY, // Get key from .env
-    }),
-
-    // Note: Ollama models are accessed via their fully qualified names
-    // e.g., ai.model('ollama/llama3') without needing an explicit ollama plugin registration here.
-    // The genkitx-ollama package handles the underlying communication.
-  ],
+  plugins: plugins,
   logLevel: 'debug', // Set desired log level
   enableTracingAndMetrics: true, // Enable tracing
 });
@@ -41,13 +56,20 @@ configureGenkit({
 // Export the configured ai object globally using Genkit 1.x pattern
 export const ai = genkit();
 
-// Define model references (examples - adjust names as needed)
-// Ollama models are referenced like: ai.model('ollama/llama3') - dynamically based on listLocalOllamaModels
-export const geminiFlash = ai.model('googleai/gemini-1.5-flash-latest'); // Updated reference using ai object
-export const geminiPro = ai.model('googleai/gemini-1.5-pro-latest'); // Updated reference using ai object
-export const geminiProVision = ai.model('googleai/gemini-pro-vision'); // Example Vision model - updated reference
+// --- Define Model References (Examples - Adjust as needed) ---
 
-// Examples of how OpenRouter and Hugging Face models *would* be referenced if available
+// Ollama models are referenced dynamically like: ai.model('ollama/llama3')
+// No need to define specific variables here unless for frequent use aliases.
+
+// Google AI Models (available if GOOGLE_API_KEY is set)
+export const geminiFlash = ai.model('googleai/gemini-1.5-flash-latest');
+export const geminiPro = ai.model('googleai/gemini-1.5-pro-latest');
+export const geminiProVision = ai.model('googleai/gemini-pro-vision'); // Vision model example
+
+// Examples of how OpenRouter and Hugging Face models *would* be referenced if available and configured
 // export const openRouterDefault = ai.model('openrouter/auto');
+// export const openRouterClaudeHaiku = ai.model('openrouter/anthropic/claude-3-haiku');
 // export const hfCodeLlama = ai.model('huggingface/codellama/CodeLlama-7b-hf');
+
+console.log(`Genkit initialized with ${plugins.length} active plugins.`);
 

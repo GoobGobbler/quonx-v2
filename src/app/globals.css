@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 /* Import a typewriter-style or monospaced font */
-/* Using Cutive Mono as specified in layout.tsx */
-body {
-  font-family: var(--font-cutive-mono), monospace;
-}
+/* Applied via layout.tsx and CSS variables */
+/* body {
+  font-family: var(--font-cutive-mono), monospace; /* Default font */
+/* } */
 
 @layer base {
   :root {
@@ -108,8 +108,8 @@ body {
   }
 }
 
-/* Subtle Grain Texture */
-body::before {
+/* Subtle Grain Texture - Applied conditionally via body class */
+.grain-effect::before {
     content: "";
     position: fixed;
     top: 0;
@@ -123,8 +123,8 @@ body::before {
     mix-blend-mode: overlay;
 }
 
-/* Subtle Scan Line Effect */
-body::after {
+/* Subtle Scan Line Effect - Applied conditionally via body class */
+.scanlines-effect::after {
     content: "";
     position: fixed;
     top: 0;
@@ -158,12 +158,14 @@ body { animation: flicker 0.1s infinite alternate; } */
   }
   body {
     @apply bg-background text-foreground; /* Use charcoal bg, muted teal text */
+    /* Font applied dynamically via layout.tsx */
+    /* font-family: var(--font-cutive-mono), monospace; */
     font-feature-settings: "liga" 0, "calt" 0;
     text-shadow: 0 0 2px hsla(var(--foreground) / 0.15); /* Even subtler text glow */
   }
 }
 
-/* Neon Glow Effect for Controls (Primary/Accent Colors) */
+/* Neon Glow Effect for Controls (Primary/Accent Colors) - Applied via class */
 .neon-glow {
   box-shadow: 0 0 1px hsl(var(--primary)), 0 0 2px hsl(var(--primary)), inset 0 0 1px hsl(var(--primary) / 0.3);
   border-color: hsl(var(--primary) / 0.7);
@@ -195,15 +197,18 @@ body { animation: flicker 0.1s infinite alternate; } */
 }
 
 
-/* Subtle Chromatic Aberration */
+/* Subtle Chromatic Aberration - Applied via class */
 .chromatic-aberration-light {
   position: relative;
-  color: transparent;
+  color: transparent; /* Apply text color directly to element */
   background: none;
+}
+.chromatic-aberration-light > * { /* Ensure children inherit color properly */
+    color: inherit;
 }
 .chromatic-aberration-light::before,
 .chromatic-aberration-light::after {
-  content: attr(data-text);
+  content: attr(data-text); /* Use data attribute for text duplication */
   position: absolute;
   top: 0;
   left: 0;
@@ -212,6 +217,7 @@ body { animation: flicker 0.1s infinite alternate; } */
   background: none;
   pointer-events: none;
   text-shadow: none;
+  z-index: 1; /* Ensure pseudo-elements are above base text slightly */
 }
 .chromatic-aberration-light::before {
   /* Red/Orange shift */
@@ -243,8 +249,8 @@ body { animation: flicker 0.1s infinite alternate; } */
   animation: blink-caret 1.2s step-end infinite;
 }
 @keyframes blink-caret {
-  from, to { border-right: 2px solid hsl(var(--primary)); }
-  50% { border-right-color: transparent; }
+  from, to { border-right: 2px solid hsl(var(--primary)); margin-right: -2px; /* Prevent layout shift */ }
+  50% { border-right-color: transparent; margin-right: 0; }
 }
 
 
@@ -301,6 +307,7 @@ body { animation: flicker 0.1s infinite alternate; } */
     padding: 0.25rem; /* p-1 */
     border-radius: var(--radius);
     transition: color 0.2s, background-color 0.2s;
+    z-index: 10; /* Ensure close button is above content */
 }
 .popup-close-button:hover {
     color: hsl(var(--foreground));
