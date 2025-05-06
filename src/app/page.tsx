@@ -7,7 +7,7 @@ import { CodeDisplay } from "@/components/code-display";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, Cloud, BrainCircuit } from "lucide-react"; // Added more icons
+import { Terminal, RefreshCw, Server, Cloud, BrainCircuit } from "lucide-react"; // Removed unused Cloud icon import, kept others
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 interface CombinedModel {
   id: string; // Fully qualified name (e.g., "ollama/llama3", "googleai/gemini-1.5-flash")
   name: string; // Display name (e.g., "llama3", "Gemini 1.5 Flash")
-  provider: 'Ollama' | 'Google AI' | 'OpenRouter' | 'Hugging Face';
+  provider: 'Ollama' | 'Google AI'; // Removed 'OpenRouter' and 'Hugging Face'
   size?: number; // Optional size in bytes (primarily for Ollama)
   description?: string; // Optional description
 }
@@ -33,19 +33,8 @@ const GOOGLE_AI_MODELS: CombinedModel[] = [
   // Add other Gemini models as needed
 ];
 
-const OPENROUTER_MODELS: CombinedModel[] = [
-  { id: 'openrouter/auto', name: 'OpenRouter Auto', provider: 'OpenRouter', description: 'Automatic model selection' },
-  { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'OpenRouter', description: 'Anthropic Haiku model via OpenRouter'},
-  { id: 'openrouter/google/gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (OR)', provider: 'OpenRouter', description: 'Google Gemini Flash via OpenRouter' },
-  { id: 'openrouter/mistralai/mistral-large-latest', name: 'Mistral Large (OR)', provider: 'OpenRouter', description: 'Mistral Large via OpenRouter' },
-  // Add other popular OpenRouter models
-];
-
-const HUGGING_FACE_MODELS: CombinedModel[] = [
-    { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B HF', provider: 'Hugging Face', description: 'Code generation model' },
-    { id: 'huggingface/mistralai/Mistral-7B-Instruct-v0.1', name: 'Mistral 7B Instruct', provider: 'Hugging Face', description: 'Instruction-tuned model' },
-  // Add other relevant HF models
-];
+// Removed OPENROUTER_MODELS constant
+// Removed HUGGING_FACE_MODELS constant
 // --- End Hardcoded Models ---
 
 
@@ -87,8 +76,7 @@ export default function Home() {
     const combined = [
         ...(ollamaError ? [] : localModels), // Only include if no error
         ...GOOGLE_AI_MODELS,
-        ...OPENROUTER_MODELS,
-        ...HUGGING_FACE_MODELS,
+        // Removed OpenRouter and Hugging Face models
     ];
     setAllModels(combined);
 
@@ -96,9 +84,8 @@ export default function Home() {
     if (!selectedModelId && combined.length > 0) {
         // Prioritize non-local, then local
         const firstGoogle = combined.find(m => m.provider === 'Google AI');
-        const firstOpenRouter = combined.find(m => m.provider === 'OpenRouter');
         const firstOllama = combined.find(m => m.provider === 'Ollama');
-        setSelectedModelId(firstGoogle?.id || firstOpenRouter?.id || firstOllama?.id || combined[0].id);
+        setSelectedModelId(firstGoogle?.id || firstOllama?.id || combined[0].id);
     } else if (combined.length === 0) {
          setSelectedModelId(undefined); // Clear selection if no models found at all
     }
@@ -204,8 +191,7 @@ export default function Home() {
       switch (provider) {
           case 'Ollama': return <Server className="h-4 w-4 mr-2 text-blue-500" />;
           case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-green-500" />;
-          case 'OpenRouter': return <Cloud className="h-4 w-4 mr-2 text-purple-500" />;
-          case 'Hugging Face': return <Cloud className="h-4 w-4 mr-2 text-yellow-500" />; // Or a different HF icon
+          // Removed OpenRouter and Hugging Face icons
           default: return null;
       }
   };
@@ -330,7 +316,7 @@ export default function Home() {
       </main>
 
       <footer className="p-2 border-t border-border text-center text-xs text-muted-foreground bg-card/80 font-mono">
-         Powered by Genkit, Ollama, OpenRouter, Hugging Face &amp; Google AI - Retro Edition © {new Date().getFullYear()}
+         Powered by Genkit, Ollama &amp; Google AI - Retro Edition © {new Date().getFullYear()}
       </footer>
     </div>
   );

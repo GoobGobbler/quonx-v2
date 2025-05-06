@@ -24,9 +24,9 @@ const nextConfig: NextConfig = {
     serverComponentsExternalPackages: [
       'react-syntax-highlighter',
       'genkitx-ollama', // Ensure this is present and correct
-      '@genkit-ai/openrouter',
-      '@genkit-ai/huggingface',
-      '@genkit-ai/googleai'
+      // '@genkit-ai/openrouter', // Removed as package@1.8.0 not found
+      // '@genkit-ai/huggingface', // Removed as package@1.8.0 not found
+      '@genkit-ai/googleai' // Ensure this is present and correct
     ],
   },
 };
