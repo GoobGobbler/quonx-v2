@@ -1,46 +1,56 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that generates code from a prompt using a selected model.
+ * Handles model selection logic and basic error handling.
  *
- * - generateCodeFromPrompt - A function that handles the code generation process.
- * - GenerateCodeFromPromptInput - The input type for the generateCodeFromPrompt function.
- * - GenerateCodeFromPromptOutput - The return type for the generateCodeFromPrompt function.
+ * - generateCodeFromPrompt - Public function to invoke the code generation flow.
+ * - GenerateCodeFromPromptInput - Input schema for the generation request.
+ * - GenerateCodeFromPromptOutput - Output schema for the generation result.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { ModelReference } from 'genkit/model'; // Use type import
 
-// Define known model prefixes to help resolve model references
+// Define known model prefixes to help resolve model references and provide better errors
 const KNOWN_PROVIDER_PREFIXES = ['ollama/', 'googleai/', 'openrouter/', 'huggingface/'];
 
 const GenerateCodeFromPromptInputSchema = z.object({
-  prompt: z.string().describe('The prompt describing the application or code to build. Include details like language, framework, file structure, features, and any specific requirements (e.g., "generate unit tests").'),
+  prompt: z.string().describe('The prompt describing the application or code to build. Include details like language, framework, file structure, features, and any specific requirements (e.g., "generate unit tests", "use TypeScript", "create a Next.js component").'),
   previousCode: z.string().optional().describe('The code from the previous successful build, if any. This provides context for edits or additions.'),
   modelName: z.string().describe('The fully qualified name of the model to use (e.g., "ollama/llama3", "googleai/gemini-1.5-flash-latest").'),
 });
 export type GenerateCodeFromPromptInput = z.infer<typeof GenerateCodeFromPromptInputSchema>;
 
 const GenerateCodeFromPromptOutputSchema = z.object({
-  code: z.string().describe('The generated code for the application or component.'),
+  code: z.string().describe('The generated code, formatted appropriately (e.g., within ```language ... ``` blocks if specified in prompt or inferred).'),
 });
 export type GenerateCodeFromPromptOutput = z.infer<typeof GenerateCodeFromPromptOutputSchema>;
 
-// --- Future Enhancements ---
-// TODO: Implement separate agents (Code Assistant, Project Architect) as distinct flows or tools.
-// TODO: Integrate long-term memory/context management beyond just the last successful code.
-// TODO: Add MLOps integration points (e.g., logging experiment details).
-// TODO: Integrate security scanning results or linters as tools or context.
-// --------------------------
+// --- Future Enhancements / TODOs ---
+// - Implement file tree generation (output multiple files).
+// - Add specific agents (Code Assistant, Project Architect) as distinct flows or tools.
+// - Integrate long-term memory/context beyond just the last successful code.
+// - Add MLOps integration (logging experiment details, performance metrics).
+// - Integrate security scanning (e.g., Snyk) results or linters as tools/context.
+// - Support multimodal input (images, sketches).
+// - Implement robust validation pipeline (syntax, deps, tests) before returning code.
+// - Add Firebase/Cloud deployment integration steps.
+// ------------------------------------
 
 /**
  * Generates code based on a user prompt, potentially using previous code as context.
- * @param input - The input containing the prompt, previous code, and model name.
+ * This acts as the primary entry point for the code generation feature.
+ *
+ * @param input - The input containing the prompt, optional previous code, and model name.
  * @returns A promise that resolves to the generated code.
+ * @throws Throws an error if model resolution fails or generation encounters an issue.
  */
 export async function generateCodeFromPrompt(input: GenerateCodeFromPromptInput): Promise<GenerateCodeFromPromptOutput> {
-  // This function acts as the entry point, calling the underlying Genkit flow.
-  // In a more complex system, this might route to different agents based on the prompt.
+  // Currently, this directly calls the flow. In a more complex system,
+  // it might route to different agents (flows/tools) based on prompt analysis.
+  console.log(`Generating code with model: ${input.modelName}`);
   return generateCodeFromPromptFlow(input);
 }
 
@@ -49,24 +59,31 @@ const prompt = ai.definePrompt({
   name: 'generateCodeFromPromptPrompt',
   input: { schema: GenerateCodeFromPromptInputSchema },
   output: { schema: GenerateCodeFromPromptOutputSchema },
-  prompt: `You are an expert software developer AI agent designed to generate high-quality, secure, and maintainable code based on user prompts within an IDE environment.
+  prompt: `You are an expert AI software developer integrated into an IDE. Your task is to generate high-quality, secure, and maintainable code based *strictly* on the user's prompt and any provided previous code context.
 
-Generate the complete, runnable code for the following application or component based *strictly* on the user prompt and optional previous code.
-Adhere to the requested format, language, file names, and project structure.
-Prioritize code clarity, efficiency, and security best practices.
-If the user requests unit tests, generate them alongside the main code.
+**Instructions:**
+1.  **Adhere Strictly to Prompt:** Generate code that directly addresses the user's request. Pay close attention to specified languages, frameworks, file names, project structures, and features (e.g., unit tests, styling).
+2.  **Completeness:** Provide complete, runnable code snippets or full application structures as requested. Use standard code formatting (e.g., markdown code blocks with language identifiers like \`\`\`typescript ... \`\`\`).
+3.  **Clarity & Best Practices:** Prioritize clear, efficient, and secure coding practices suitable for production environments.
+4.  **Context Usage:**
+    *   If 'Previous Code' is provided, use it as context for modifications or additions based on the *new* prompt.
+    *   If the new prompt is unrelated to the previous code, or if no previous code is given, generate new code from scratch based solely on the prompt.
+5.  **Output Format:** Return *only* the generated code within the 'code' field of the output JSON. Do not include explanatory text outside the code itself unless explicitly requested in the prompt.
 
-User Prompt:
+**User Prompt:**
 {{{prompt}}}
 
 {{#if previousCode}}
-Here is the code from the previous successful build. You can use this as context or modify it based on the new prompt. If the new prompt is unrelated, generate new code from scratch.
-Previous Code:
+**Previous Code Context (for modification/reference):**
+\`\`\`
 {{{previousCode}}}
+\`\`\`
 {{/if}}
 
-Generate the new code now:`,
+**Generated Code Output:**
+`,
 });
+
 
 // Define the Genkit flow that orchestrates the code generation process
 const generateCodeFromPromptFlow = ai.defineFlow(
@@ -76,57 +93,83 @@ const generateCodeFromPromptFlow = ai.defineFlow(
     outputSchema: GenerateCodeFromPromptOutputSchema,
   },
   async (input) => {
-    let modelToUse: ModelReference<any> | undefined;
+    let modelToUse: ModelReference<any>;
 
+    // --- Model Resolution and Validation ---
     try {
-      // Validate if the model name seems correctly formatted (includes a provider prefix)
-      const hasPrefix = KNOWN_PROVIDER_PREFIXES.some(prefix => input.modelName.startsWith(prefix));
-      if (!hasPrefix) {
-          throw new Error(`Invalid model name format: "${input.modelName}". Must include provider prefix (e.g., "ollama/llama3").`);
-      }
-      // Get the model reference using the provided string name
-      // Note: This assumes the model (e.g., 'ollama/llama3') is available to Genkit.
-      // For Ollama, this relies on the Ollama server being reachable by the environment running this flow.
-      // For cloud models, it relies on correct plugin configuration and API keys in genkit.ts.
-      modelToUse = ai.model(input.modelName);
+        // Basic check for provider prefix
+        const hasPrefix = KNOWN_PROVIDER_PREFIXES.some(prefix => input.modelName.startsWith(prefix));
+        if (!hasPrefix) {
+            throw new Error(`Invalid model name format: "${input.modelName}". Name must include a provider prefix (e.g., "ollama/llama3", "googleai/gemini-1.5-flash").`);
+        }
 
-      if (!modelToUse) {
-        // This case might be less likely if ai.model throws, but good for safety
-        throw new Error(`Model "${input.modelName}" not found or configured in Genkit.`);
-      }
+        // Attempt to get the model reference from Genkit
+        console.log(`Attempting to resolve model: ${input.modelName}`);
+        // Genkit's ai.model() will handle checking availability based on configured plugins.
+        // It throws if the model is specified but the corresponding plugin isn't configured or fails.
+        modelToUse = ai.model(input.modelName);
+        console.log(`Successfully resolved model: ${input.modelName}`);
 
     } catch (error: any) {
         console.error(`Error resolving model "${input.modelName}":`, error);
-        // Provide a more user-friendly error message
+        // Provide a more user-friendly and context-specific error message
         let detailedMessage = `Failed to find or configure the specified model: ${input.modelName}.`;
         if (input.modelName.startsWith('ollama/')) {
-            detailedMessage += ' Ensure the Ollama server is running and accessible.';
+            detailedMessage += ' Ensure the Ollama server is running, accessible, and the model is downloaded (check Settings for Base URL).';
+        } else if (input.modelName.startsWith('googleai/')) {
+            detailedMessage += ' Check Genkit configuration and ensure the GOOGLE_API_KEY is correctly set in Settings/environment.';
+        } else if (input.modelName.startsWith('openrouter/')) {
+            detailedMessage += ' The OpenRouter plugin (@genkit-ai/openrouter@1.8.0) was not found. Check installation and ensure OPENROUTER_API_KEY is set.';
+        } else if (input.modelName.startsWith('huggingface/')) {
+             detailedMessage += ' The HuggingFace plugin (@genkit-ai/huggingface@1.8.0) was not found. Check installation and ensure HF_API_KEY is set.';
         } else {
-            detailedMessage += ' Check Genkit configuration and ensure necessary API keys (e.g., GOOGLE_API_KEY) are set in your environment.';
+            detailedMessage += ' Verify the model name and check if the required Genkit plugin is installed and configured correctly.';
         }
-        detailedMessage += ` Details: ${error.message}`;
+        // Append the original error for more technical detail if available
+        if (error.message) {
+           detailedMessage += ` Details: ${error.message}`;
+        }
         throw new Error(detailedMessage);
     }
 
-    // Prepare input for the prompt, removing the modelName as it's not part of the prompt template
+    // --- Prepare Prompt Input ---
+    // Exclude modelName as it's used in flow options, not the prompt template itself
     const promptInput = {
         prompt: input.prompt,
         previousCode: input.previousCode,
-        // modelName is *not* passed here; it's used in the flow options below
     };
 
-    // Execute the prompt with the selected model
-    // TODO: Add validation pipeline here (syntax check, linting, dependency checks) before returning.
-    // TODO: Implement retry logic with error feedback to the model if validation fails.
-    const { output } = await prompt(promptInput, { model: modelToUse });
+    // --- Execute Prompt ---
+    console.log(`Executing prompt with model: ${input.modelName}`);
+    // TODO: Add pre-validation step here (e.g., basic prompt sanity check)
+    try {
+        const { output } = await prompt(promptInput, { model: modelToUse });
 
-    if (!output) {
-        // Handle cases where the model returns no output (e.g., content filtering)
-        throw new Error('Received no output from the AI model. This could be due to content filtering or an internal model error.');
+        if (!output || typeof output.code !== 'string') {
+            // Handle cases where the model returns no output or invalid format
+             console.warn("Model returned invalid or empty output structure:", output);
+             throw new Error('Received no valid code output from the AI model. This might be due to content filtering, an internal model error, or incorrect output formatting.');
+        }
+
+        console.log(`Received output from model ${input.modelName}. Length: ${output.code.length}`);
+
+        // TODO: Implement post-generation validation pipeline here (syntax, linting, etc.) before returning.
+        // Example conceptual call:
+        // const validationResult = await runValidationPipeline(output.code);
+        // if (!validationResult.success) {
+        //    throw new Error(`Generated code failed validation: ${validationResult.message}`);
+        // }
+
+        // TODO: Potentially post-process the output (e.g., format code, extract files if multiple generated).
+
+        return output;
+
+    } catch (generationError: any) {
+        console.error(`Error during prompt execution with model ${input.modelName}:`, generationError);
+        // Rethrow with a potentially more context-rich message
+        throw new Error(`AI generation failed using model ${input.modelName}. Reason: ${generationError.message || 'Unknown error'}`);
     }
-
-    // TODO: Potentially post-process the output (e.g., format code, extract files if multiple generated).
-
-    return output;
   }
 );
+
+```

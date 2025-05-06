@@ -1,4 +1,3 @@
-
 import { genkit, configureGenkit } from 'genkit';
 // Ensure correct imports for installed packages
 // import { openRouter } from '@genkit-ai/openrouter'; // Removed as package@1.8.0 not found
@@ -28,7 +27,7 @@ if (process.env.GOOGLE_API_KEY) {
 //   plugins.push(openRouter({ apiKey: process.env.OPENROUTER_API_KEY }));
 //   console.log("Genkit: OpenRouter plugin configured.");
 // } else {
-  console.warn("Genkit: OpenRouter plugin unavailable (@genkit-ai/openrouter@1.8.0 not found).");
+  console.warn("Genkit: OpenRouter plugin unavailable (@genkit-ai/openrouter@1.8.0 not found). API key check skipped.");
 // }
 
 // Conditionally add Hugging Face plugin if API key is available (Keep commented until package exists)
@@ -36,7 +35,7 @@ if (process.env.GOOGLE_API_KEY) {
 //   plugins.push(huggingFace({ apiKey: process.env.HF_API_KEY }));
 //   console.log("Genkit: Hugging Face plugin configured.");
 // } else {
-  console.warn("Genkit: Hugging Face plugin unavailable (@genkit-ai/huggingface@1.8.0 not found).");
+  console.warn("Genkit: Hugging Face plugin unavailable (@genkit-ai/huggingface@1.8.0 not found). API key check skipped.");
 // }
 
 // Note: Ollama models are accessed via their fully qualified names
@@ -49,8 +48,8 @@ console.log("Genkit: Ollama models can be accessed dynamically (e.g., 'ollama/ll
 // Configure Genkit with the dynamically added plugins
 configureGenkit({
   plugins: plugins,
-  logLevel: 'debug', // Set desired log level
-  enableTracingAndMetrics: true, // Enable tracing
+  logLevel: 'debug', // Set desired log level (debug, info, warn, error)
+  enableTracingAndMetrics: true, // Enable tracing for observability
 });
 
 // Export the configured ai object globally using Genkit 1.x pattern
@@ -71,4 +70,9 @@ export const geminiProVision = ai.model('googleai/gemini-pro-vision'); // Vision
 // export const openRouterClaudeHaiku = ai.model('openrouter/anthropic/claude-3-haiku');
 // export const hfCodeLlama = ai.model('huggingface/codellama/CodeLlama-7b-hf');
 
-console.log(`Genkit initialized with ${plugins.length} active plugins.`);
+console.log(`Genkit initialized with ${plugins.length} active plugin(s).`);
+if (plugins.length === 0) {
+    console.warn("Genkit: No cloud AI plugins were configured due to missing API keys.");
+}
+
+```
