@@ -1,10 +1,12 @@
+
+
 import { genkit, configureGenkit } from 'genkit';
 // Remove direct import of ollama plugin
 // import { ollama } from 'genkitx-ollama';
 import { openRouter } from '@genkit-ai/openrouter';
 import { huggingFace } from '@genkit-ai/huggingface';
 import { googleAI } from '@genkit-ai/googleai';
-import { defineDotprompt } from '@genkit-ai/dotprompt';
+// import { defineDotprompt } from '@genkit-ai/dotprompt';
 import { z } from 'zod'; // Ensure zod is imported if used later
 
 // Load environment variables
@@ -60,3 +62,8 @@ export const ai = genkit();
 //   },
 //   `Say hello to {{name}}.`,
 // );
+
+
+
+
+
