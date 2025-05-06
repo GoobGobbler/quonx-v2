@@ -28,7 +28,7 @@ if (process.env.GOOGLE_API_KEY) {
 //   plugins.push(openRouter({ apiKey: process.env.OPENROUTER_API_KEY }));
 //   console.log("Genkit: OpenRouter plugin configured.");
 // } else {
-//   console.warn("Genkit: OPENROUTER_API_KEY not found in environment. OpenRouter plugin disabled.");
+  console.warn("Genkit: OpenRouter plugin unavailable (@genkit-ai/openrouter@1.8.0 not found).");
 // }
 
 // Conditionally add Hugging Face plugin if API key is available (Keep commented until package exists)
@@ -36,7 +36,7 @@ if (process.env.GOOGLE_API_KEY) {
 //   plugins.push(huggingFace({ apiKey: process.env.HF_API_KEY }));
 //   console.log("Genkit: Hugging Face plugin configured.");
 // } else {
-//   console.warn("Genkit: HF_API_KEY not found in environment. Hugging Face plugin disabled.");
+  console.warn("Genkit: Hugging Face plugin unavailable (@genkit-ai/huggingface@1.8.0 not found).");
 // }
 
 // Note: Ollama models are accessed via their fully qualified names
@@ -72,4 +72,3 @@ export const geminiProVision = ai.model('googleai/gemini-pro-vision'); // Vision
 // export const hfCodeLlama = ai.model('huggingface/codellama/CodeLlama-7b-hf');
 
 console.log(`Genkit initialized with ${plugins.length} active plugins.`);
-
