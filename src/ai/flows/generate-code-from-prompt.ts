@@ -14,7 +14,8 @@ import { z } from 'genkit';
 import type { ModelReference } from 'genkit/model'; // Use type import
 
 // Define known model prefixes to help resolve model references and provide better errors
-const KNOWN_PROVIDER_PREFIXES = ['ollama/', 'googleai/', 'openrouter/', 'huggingface/'];
+// Only include providers for which plugins *could* be configured (Ollama is dynamic)
+const KNOWN_PROVIDER_PREFIXES = ['ollama/', 'googleai/'];
 
 const GenerateCodeFromPromptInputSchema = z.object({
   prompt: z.string().describe('The prompt describing the application or code to build. Include details like language, framework, file structure, features, and any specific requirements (e.g., "generate unit tests", "use TypeScript", "create a Next.js component").'),
@@ -97,16 +98,29 @@ const generateCodeFromPromptFlow = ai.defineFlow(
 
     // --- Model Resolution and Validation ---
     try {
-        // Basic check for provider prefix
+        // Basic check for provider prefix (only check for potentially configurable ones)
         const hasPrefix = KNOWN_PROVIDER_PREFIXES.some(prefix => input.modelName.startsWith(prefix));
-        if (!hasPrefix) {
-            throw new Error(`Invalid model name format: "${input.modelName}". Name must include a provider prefix (e.g., "ollama/llama3", "googleai/gemini-1.5-flash").`);
+        const isOpenRouter = input.modelName.startsWith('openrouter/');
+        const isHuggingFace = input.modelName.startsWith('huggingface/');
+
+        // Handle unavailable plugins explicitly
+        if (isOpenRouter) {
+             throw new Error(`Model provider "openrouter/" is currently unavailable. The @genkit-ai/openrouter package was not found.`);
+        }
+        if (isHuggingFace) {
+             throw new Error(`Model provider "huggingface/" is currently unavailable. The @genkit-ai/huggingface package was not found.`);
+        }
+
+        // Check format for providers that *could* be configured
+        if (!hasPrefix && !input.modelName.startsWith('ollama/')) { // Add ollama explicitly here as it's dynamic
+            throw new Error(`Invalid model name format: "${input.modelName}". Name must include a known provider prefix (e.g., "ollama/llama3", "googleai/gemini-1.5-flash").`);
         }
 
         // Attempt to get the model reference from Genkit
         console.log(`Attempting to resolve model: ${input.modelName}`);
         // Genkit's ai.model() will handle checking availability based on configured plugins.
         // It throws if the model is specified but the corresponding plugin isn't configured or fails.
+        // For Ollama, genkitx-ollama needs to be installed and the server running.
         modelToUse = ai.model(input.modelName);
         console.log(`Successfully resolved model: ${input.modelName}`);
 
@@ -114,19 +128,20 @@ const generateCodeFromPromptFlow = ai.defineFlow(
         console.error(`Error resolving model "${input.modelName}":`, error);
         // Provide a more user-friendly and context-specific error message
         let detailedMessage = `Failed to find or configure the specified model: ${input.modelName}.`;
-        if (input.modelName.startsWith('ollama/')) {
-            detailedMessage += ' Ensure the Ollama server is running, accessible, and the model is downloaded (check Settings for Base URL).';
+
+        if (error.message.includes('provider "openrouter/" is currently unavailable')) {
+            detailedMessage = error.message; // Use the specific error thrown above
+        } else if (error.message.includes('provider "huggingface/" is currently unavailable')) {
+            detailedMessage = error.message; // Use the specific error thrown above
+        } else if (input.modelName.startsWith('ollama/')) {
+            detailedMessage += ' Ensure the Ollama server is running, accessible, the genkitx-ollama package is installed, and the model is downloaded (check Settings for Base URL).';
         } else if (input.modelName.startsWith('googleai/')) {
             detailedMessage += ' Check Genkit configuration and ensure the GOOGLE_API_KEY is correctly set in Settings/environment.';
-        } else if (input.modelName.startsWith('openrouter/')) {
-            detailedMessage += ' The OpenRouter plugin (@genkit-ai/openrouter@1.8.0) was not found. Check installation and ensure OPENROUTER_API_KEY is set.';
-        } else if (input.modelName.startsWith('huggingface/')) {
-             detailedMessage += ' The HuggingFace plugin (@genkit-ai/huggingface@1.8.0) was not found. Check installation and ensure HF_API_KEY is set.';
         } else {
             detailedMessage += ' Verify the model name and check if the required Genkit plugin is installed and configured correctly.';
         }
-        // Append the original error for more technical detail if available
-        if (error.message) {
+        // Append the original error for more technical detail if available and not redundant
+        if (error.message && !detailedMessage.includes(error.message)) {
            detailedMessage += ` Details: ${error.message}`;
         }
         throw new Error(detailedMessage);
@@ -171,5 +186,3 @@ const generateCodeFromPromptFlow = ai.defineFlow(
     }
   }
 );
-
-```

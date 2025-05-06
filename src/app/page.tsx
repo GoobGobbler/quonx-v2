@@ -8,7 +8,7 @@ import { CodeDisplay } from "@/components/code-display";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder } from "lucide-react"; // Added icons
+import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX } from "lucide-react"; // Added PackageX icon
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,28 +28,27 @@ interface CombinedModel {
   provider: 'Ollama' | 'Google AI' | 'OpenRouter' | 'Hugging Face'; // Expand this as more providers are *actually* configured
   size?: number; // Optional size in bytes (primarily for Ollama)
   description?: string; // Optional description
+  unavailable?: boolean; // Flag for unavailable models due to missing plugins
 }
 
 // Key for localStorage settings
 const SETTINGS_STORAGE_KEY = 'codesynth_settings';
 
-// --- Potential Cloud Models (Activated based on Settings) ---
-// These models are only added to the list if their corresponding API key is present in settings.
-// Note: OpenRouter and HuggingFace plugins (@1.8.0) were not found during build. Integration is conceptual.
+// --- Potential Cloud Models (Activated based on Settings, but marked unavailable if plugin missing) ---
 const POTENTIAL_CLOUD_MODELS: CombinedModel[] = [
   // Google AI / Gemini Models (Requires GOOGLE_API_KEY in Settings)
   { id: 'googleai/gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google AI', description: 'Fast, versatile model for general tasks' },
   { id: 'googleai/gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', provider: 'Google AI', description: 'Most capable model for complex tasks' },
 
-  // OpenRouter models (Requires OPENROUTER_API_KEY in Settings - Plugin @1.8.0 unavailable)
-  { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', provider: 'OpenRouter', description: 'High performance model via OR' },
-  { id: 'openrouter/google/gemini-pro-1.5', name: 'Gemini 1.5 Pro (OR)', provider: 'OpenRouter', description: 'Top model via OR' },
-  { id: 'openrouter/meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B (OR)', provider: 'OpenRouter', description: 'Meta\'s Instruct model via OR' },
-  { id: 'openrouter/mistralai/mistral-large-latest', name: 'Mistral Large (OR)', provider: 'OpenRouter', description: 'Mistral Large model via OR' },
-  { id: 'openrouter/microsoft/wizardlm-2-8x22b', name: 'WizardLM-2 8x22B (OR)', provider: 'OpenRouter', description: 'Microsoft research model via OR'},
+  // OpenRouter models (Require OPENROUTER_API_KEY, but plugin@1.8.0 is unavailable)
+  { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
+  { id: 'openrouter/google/gemini-pro-1.5', name: 'Gemini 1.5 Pro (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
+  { id: 'openrouter/meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
+  { id: 'openrouter/mistralai/mistral-large-latest', name: 'Mistral Large (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
+  { id: 'openrouter/microsoft/wizardlm-2-8x22b', name: 'WizardLM-2 8x22B (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
 
-  // Hugging Face models (Requires HF_API_KEY in Settings - Plugin @1.8.0 unavailable)
-  { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Code-focused model via HF' },
+  // Hugging Face models (Require HF_API_KEY, but plugin@1.8.0 is unavailable)
+  { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Unavailable (@genkit-ai/huggingface@1.8.0 not found)', unavailable: true },
 ];
 // --- End Potential Cloud Models ---
 
@@ -167,6 +166,7 @@ export default function Home() {
     let localModels: CombinedModel[] = [];
     let ollamaError: string | null = null;
     let configuredCloudModels: CombinedModel[] = [];
+    let pluginWarnings: string[] = []; // Reset warnings
 
     // Load settings from localStorage
     let settings: Partial<AppSettings> = {}; // Use AppSettings type from settings-panel
@@ -210,31 +210,19 @@ export default function Home() {
     }
 
 
-    // Check settings for API keys and add corresponding cloud models
+    // Add cloud models based on potential list and settings
     if (settings.googleApiKey) {
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Google AI'));
     }
     if (settings.openRouterApiKey) {
+        // Add OpenRouter models but they remain marked as unavailable
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
+        pluginWarnings.push("OpenRouter integration unavailable (@genkit-ai/openrouter@1.8.0 not found)");
     }
      if (settings.huggingFaceApiKey) {
+        // Add Hugging Face models but they remain marked as unavailable
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
-    }
-
-
-    // Handle OpenRouter and HuggingFace conceptually (plugins unavailable)
-    let pluginWarnings: string[] = [];
-    const expectedPackages = ['@genkit-ai/openrouter', '@genkit-ai/huggingface']; // Example, adjust if needed
-    // In a real scenario, you might check if the corresponding plugin function exists in Genkit's registry
-    // or simply rely on Genkit's internal error handling when trying to use the model.
-    // Here, we simulate based on settings keys.
-    if (settings.openRouterApiKey && !expectedPackages.includes('@genkit-ai/openrouter')) { // Simplified check
-        console.warn("OpenRouter API key is set, but @genkit-ai/openrouter plugin@1.8.0 is not installed/available.");
-        pluginWarnings.push("OpenRouter integration may be unavailable (plugin not found)");
-    }
-    if (settings.huggingFaceApiKey && !expectedPackages.includes('@genkit-ai/huggingface')) { // Simplified check
-        console.warn("Hugging Face API key is set, but @genkit-ai/huggingface plugin@1.8.0 is not installed/available.");
-         pluginWarnings.push("HuggingFace integration may be unavailable (plugin not found)");
+        pluginWarnings.push("HuggingFace integration unavailable (@genkit-ai/huggingface@1.8.0 not found)");
     }
 
 
@@ -245,34 +233,36 @@ export default function Home() {
     ];
     setAllModels(combined);
 
-    // Set a default model intelligently, prioritizing configured cloud models, then Ollama
-    if (!selectedModelId || !combined.some(m => m.id === selectedModelId)) {
-        const firstGoogle = combined.find(m => m.provider === 'Google AI');
-        const firstOR = combined.find(m => m.provider === 'OpenRouter');
-        const firstHF = combined.find(m => m.provider === 'Hugging Face');
-        const firstOllama = combined.find(m => m.provider === 'Ollama');
-        const newSelectedId = firstGoogle?.id || firstOR?.id || firstHF?.id || firstOllama?.id || (combined.length > 0 ? combined[0].id : undefined);
+    // Filter only AVAILABLE models for selection logic
+    const availableModels = combined.filter(m => !m.unavailable);
+
+    // Set a default model intelligently, prioritizing configured cloud models, then Ollama, ONLY from AVAILABLE models
+    if (!selectedModelId || !availableModels.some(m => m.id === selectedModelId)) {
+        const firstGoogle = availableModels.find(m => m.provider === 'Google AI');
+        const firstOllama = availableModels.find(m => m.provider === 'Ollama');
+        const newSelectedId = firstGoogle?.id || firstOllama?.id || (availableModels.length > 0 ? availableModels[0].id : undefined);
         setSelectedModelId(newSelectedId);
          console.log("Model selection updated:", newSelectedId ?? "None Available");
-    } else if (combined.length === 0) {
-         setSelectedModelId(undefined); // No models found
+    } else if (availableModels.length === 0) {
+         setSelectedModelId(undefined); // No available models found
     }
 
     // Handle errors/warnings more granularly
     let errorMessage = "";
-    let warningMessages: string[] = pluginWarnings; // Start with plugin warnings
+    // Start with plugin warnings if relevant keys are set
+    let warningMessages: string[] = pluginWarnings;
 
     if (ollamaError) {
-        if (configuredCloudModels.length > 0) {
-            // Ollama failed, but cloud models exist: Warning
+        if (availableModels.length > 0) { // Check against AVAILABLE models now
+            // Ollama failed, but other *available* models exist: Warning
             warningMessages.push(ollamaError);
         } else {
-            // Ollama failed AND no cloud models: Error
-             errorMessage = `${ollamaError}. No cloud providers configured either. Check Settings.`;
+            // Ollama failed AND no other *available* models: Error
+             errorMessage = `${ollamaError}. No other providers configured/available. Check Settings.`;
         }
-    } else if (combined.length === 0) {
-        // No Ollama error, but list is empty (means Ollama OK but returned 0 models, and no cloud configured)
-        errorMessage = "No AI models found. Check Ollama for downloaded models or configure cloud API keys in Settings.";
+    } else if (availableModels.length === 0) {
+        // No Ollama error, but list is empty OR all models are unavailable
+        errorMessage = "No available AI models found. Check Ollama, configure cloud API keys, or install missing plugins (@genkit-ai/openrouter, @genkit-ai/huggingface).";
     }
 
     // Display warnings as non-destructive toasts
@@ -281,7 +271,7 @@ export default function Home() {
             id: 'model-warning-toast',
             variant: "default", // Use default variant, potentially styled
             title: "SYS WARN: Model Configuration",
-            description: warningMessages.join(' '),
+            description: warningMessages.join('; '),
             className: "font-mono border-secondary text-secondary", // Keep specific style for warning
             duration: 10000, // Show for 10 seconds
         });
@@ -351,6 +341,15 @@ export default function Home() {
         return;
     }
 
+    // Check if the selected model is marked as unavailable
+    const selectedModel = allModels.find(m => m.id === selectedModelId);
+    if (selectedModel?.unavailable) {
+        const errorMsg = `Model "${selectedModel.name}" (${selectedModel.provider}) is unavailable due to missing plugin. Check settings or install required package.`;
+        setGenerationError(errorMsg);
+        toast({ variant: "destructive", title: "ERR: Model Unavailable", description: errorMsg, className: "font-mono" });
+        return;
+    }
+
     setIsLoadingGeneration(true);
     setGenerationError(null); // Clear previous errors
     setValidationStatus("Running Pre-Validation...");
@@ -375,7 +374,7 @@ export default function Home() {
         return;
     }
     setValidationStatus("Generating...");
-    setValidationMessage(`Using model: ${allModels.find(m => m.id === selectedModelId)?.name || selectedModelId}`);
+    setValidationMessage(`Using model: ${selectedModel?.name || selectedModelId}`);
     toast({ title: "STATUS: Generating Code", description: `Sending request to ${selectedModelId}...`, className: "font-mono text-xs" });
 
 
@@ -426,7 +425,7 @@ export default function Home() {
              }
            }
 
-           const selectedModel = allModels.find(m => m.id === selectedModelId);
+           // const selectedModel = allModels.find(m => m.id === selectedModelId); // Already fetched above
            toast({
              title: "STATUS: Generation OK",
              description: `Code generated with ${selectedModel?.name || selectedModelId}. Validation passed.`,
@@ -496,21 +495,22 @@ export default function Home() {
   };
 
 
-  const getProviderIcon = (provider: CombinedModel['provider']) => {
+  const getProviderIcon = (provider: CombinedModel['provider'], unavailable?: boolean) => {
+      const baseClasses = "h-4 w-4 mr-2 flex-shrink-0";
+      if (unavailable) {
+          return <PackageX className={cn(baseClasses, "text-destructive")} title={`${provider} (Plugin Unavailable)`} />;
+      }
       switch (provider) {
-          case 'Ollama': return <HardDrive className="h-4 w-4 mr-2 text-secondary flex-shrink-0" title="Ollama (Local)" />;
-          case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-primary flex-shrink-0" title="Google AI" />;
-          case 'OpenRouter': return <CloudCog className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0" title="OpenRouter" />; // Assume plugin is available now
-          case 'Hugging Face': return <span className="mr-2 text-yellow-400 flex-shrink-0" title="Hugging Face">🤗</span>; // Assume plugin is available now
-          default: return <Box className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" title="Unknown Provider" />;
+          case 'Ollama': return <HardDrive className={cn(baseClasses, "text-secondary")} title="Ollama (Local)" />;
+          case 'Google AI': return <BrainCircuit className={cn(baseClasses, "text-primary")} title="Google AI" />;
+          case 'OpenRouter': return <CloudCog className={cn(baseClasses, "text-purple-400")} title="OpenRouter" />; // Style assumes available
+          case 'Hugging Face': return <span className="mr-2 text-yellow-400 flex-shrink-0" title="Hugging Face">🤗</span>; // Style assumes available
+          default: return <Box className={cn(baseClasses, "text-muted-foreground")} title="Unknown Provider" />;
       }
   };
 
   // Group models by provider for the Select component
   const groupedModels = allModels.reduce((acc, model) => {
-      // Skip placeholder models if they exist (optional, depends on decision above)
-      // if (model.id.startsWith('placeholder-')) return acc; // Re-evaluate if placeholders are needed
-
       const provider = model.provider;
       (acc[provider] = acc[provider] || []).push(model);
       return acc;
@@ -565,7 +565,7 @@ export default function Home() {
                <Terminal className="h-6 w-6 text-primary hidden sm:block"/>
               <div>
                  <h1 className="text-lg md:text-xl font-bold text-primary font-mono chromatic-aberration-light" data-text="CodeSynth_IDE">CodeSynth_IDE</h1>
-                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI Code Environment v0.2</p>
+                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI Code Environment v0.3</p> {/* Version Bump */}
              </div>
           </div>
            <div className="flex items-center space-x-3">
@@ -672,7 +672,7 @@ export default function Home() {
                        </Label>
                         {isLoadingModels && !allModels.length ? (
                           <Skeleton className="h-10 w-full bg-muted/50 rounded-none border border-muted" />
-                        ) : modelError && allModels.length === 0 ? (
+                        ) : modelError && allModels.filter(m => !m.unavailable).length === 0 ? ( // Check only available models for error display trigger
                             <Alert variant="destructive" className="py-1 px-2 bg-destructive/10 border-destructive/50 text-destructive rounded-none text-xs">
                                <Terminal className="h-4 w-4" />
                                <AlertDescription className="ml-1 flex items-center justify-between">
@@ -687,32 +687,40 @@ export default function Home() {
                             disabled={isLoadingModels || allModels.length === 0 || isLoadingGeneration}
                           >
                              <SelectTrigger id="model-select" className="w-full bg-input border-border font-mono neon-glow focus:ring-ring focus:border-accent rounded-none text-foreground disabled:opacity-70 disabled:cursor-not-allowed">
-                                <SelectValue placeholder={allModels.length === 0 ? "[No Models Available]" : "[Select Model...]"} />
+                                <SelectValue placeholder={allModels.filter(m => !m.unavailable).length === 0 ? "[No Models Available]" : "[Select Model...]"} />
                              </SelectTrigger>
                              <SelectContent className="bg-popover border-border font-mono max-h-[400px] overflow-y-auto rounded-none shadow-[0_0_10px_hsla(var(--ring)/0.3)]">
                                {(Object.keys(groupedModels) as Array<keyof typeof groupedModels>).length > 0 ? (
                                    (Object.keys(groupedModels) as Array<keyof typeof groupedModels>).map((provider) => (
                                        <SelectGroup key={provider}>
                                            <SelectLabel className="text-xs text-muted-foreground flex items-center pl-2 pr-2 py-1 font-mono">
-                                               {getProviderIcon(provider as CombinedModel['provider'])}
+                                               {/* Check first model in group for unavailable flag */}
+                                               {getProviderIcon(provider as CombinedModel['provider'], groupedModels[provider][0]?.unavailable)}
                                                // {provider}_Models //
                                            </SelectLabel>
                                            {groupedModels[provider].map((model) => (
                                                <SelectItem
                                                   key={model.id}
                                                   value={model.id}
-                                                  className="cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono pl-8 rounded-none data-[state=checked]:bg-primary/80 data-[state=checked]:text-primary-foreground flex flex-col items-start"
-                                                  disabled={model.id.startsWith('placeholder-')} // Disable placeholder models
+                                                  className={cn(
+                                                    "cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono pl-8 rounded-none data-[state=checked]:bg-primary/80 data-[state=checked]:text-primary-foreground flex flex-col items-start",
+                                                    model.unavailable && "opacity-50 cursor-not-allowed text-muted-foreground"
+                                                  )}
+                                                  disabled={model.unavailable} // Disable unavailable models
                                                >
                                                    <div className="flex items-center justify-between w-full">
                                                        <span className="truncate">{model.name}</span>
-                                                       {model.size && (
+                                                       {model.size && !model.unavailable && (
                                                          <Badge variant="outline" className="ml-2 text-xs px-1 py-0 border-muted text-muted-foreground bg-transparent rounded-none flex-shrink-0">
                                                              {(model.size / 1e9).toFixed(2)} GB
                                                          </Badge>
                                                        )}
                                                    </div>
-                                                   {model.description && <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate w-full">{model.description}</p>}
+                                                   {model.description && (
+                                                     <p className={cn("text-xs mt-0.5 font-mono truncate w-full", model.unavailable ? "text-destructive" : "text-muted-foreground")}>
+                                                        {model.description}
+                                                     </p>
+                                                    )}
                                                </SelectItem>
                                            ))}
                                        </SelectGroup>
@@ -868,7 +876,7 @@ export default function Home() {
 
                  {/* Footer */}
                  <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-                 [ CodeSynth IDE v0.2 | Active Models: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
+                 [ CodeSynth IDE v0.3 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                </footer>
              </SidebarInset>
         </div>
@@ -894,27 +902,22 @@ export default function Home() {
   );
 }
 
-// Helper function to get unique provider names from the model list
+// Helper function to get unique provider names from the model list (only counts AVAILABLE providers)
 function getProviderNames(models: CombinedModel[]): string {
     if (!models || models.length === 0) return "None Loaded";
-    // Filter out potential placeholder models if they exist
-    const actualModels = models.filter(m => !m.id.startsWith('placeholder-'));
-    if (actualModels.length === 0) return "None Configured/Available";
+    // Filter out unavailable models first
+    const availableModels = models.filter(m => !m.unavailable);
+    if (availableModels.length === 0) return "None Available";
 
-    const providers = new Set(actualModels.map(m => m.provider));
+    const providers = new Set(availableModels.map(m => m.provider));
     const providerList = Array.from(providers);
 
     // Sort providers for consistent display
     providerList.sort((a, b) => {
-       const order = ['Ollama', 'Google AI', 'OpenRouter', 'Hugging Face'];
+       const order = ['Ollama', 'Google AI', 'OpenRouter', 'Hugging Face']; // Maintain full order even if some are unavailable
        return order.indexOf(a) - order.indexOf(b);
     });
 
     if (providerList.length > 3) return `${providerList.slice(0, 3).join('/')} + Others`;
     return providerList.join(' | ');
 }
-
-
-// Dummy toastTimeouts map definition (replace with actual export/import if needed)
-// This logic is typically handled within the useToast hook itself.
-// const toastTimeouts = new Map<string, NodeJS.Timeout>();
