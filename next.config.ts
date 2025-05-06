@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -19,7 +20,8 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['react-syntax-highlighter'], // Add this if using server components
+    // Add '@genkit-ai/community-ollama' here
+    serverComponentsExternalPackages: ['react-syntax-highlighter', '@genkit-ai/community-ollama'],
   },
 };
 

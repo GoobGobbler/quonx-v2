@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview Implements the IncorporateSuccessfulCode flow, allowing the LLM to incorporate code from previous successful builds.
+ * @fileOverview Implements the IncorporateSuccessfulCode flow, allowing the LLM to incorporate code from previous successful builds, using a potentially specified Ollama model.
  *
  * - incorporateSuccessfulCode - A function that handles the code incorporation process.
  * - IncorporateSuccessfulCodeInput - The input type for the incorporateSuccessfulCode function.
@@ -17,6 +17,7 @@ const IncorporateSuccessfulCodeInputSchema = z.object({
     .string()
     .optional()
     .describe('Code from previous successful builds, if available.'),
+  ollamaModel: z.string().optional().describe('The specific Ollama model to use.'), // Added optional model parameter
 });
 export type IncorporateSuccessfulCodeInput = z.infer<typeof IncorporateSuccessfulCodeInputSchema>;
 
@@ -40,7 +41,7 @@ const generateCodePrompt = ai.definePrompt({
   Prompt: {{{prompt}}}
 
   {{#if previousSuccessfulCode}}
-  The following is code from a previous successful build that may be relevant.  Incorporate it as appropriate.
+  The following is code from a previous successful build that may be relevant. Incorporate it as appropriate.
   Previous Code: {{{previousSuccessfulCode}}}
   {{/if}}
 
@@ -55,7 +56,12 @@ const incorporateSuccessfulCodeFlow = ai.defineFlow(
     outputSchema: IncorporateSuccessfulCodeOutputSchema,
   },
   async input => {
-    const {output} = await generateCodePrompt(input);
+     // Conditionally select the model based on the input
+     const modelToUse = input.ollamaModel
+       ? ai.model(`ollama/${input.ollamaModel}`) // Construct the model name dynamically
+       : undefined; // Use the default model configured in genkit.ts if not provided
+
+    const {output} = await generateCodePrompt(input, { model: modelToUse }); // Pass selected model
     return output!;
   }
 );
