@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { X, Loader2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Import a known working style like oneDark instead of vscDarkPlus or the problematic default 'coy'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface EditPopupProps {
   initialCode: string;
@@ -58,7 +59,7 @@ export function EditPopup({
             <ScrollArea className="flex-grow bg-background">
               <SyntaxHighlighter
                 language="tsx" // Assume tsx or determine dynamically if possible
-                style={vscDarkPlus}
+                style={oneDark} // Use the imported oneDark style
                 customStyle={{
                   margin: 0,
                   backgroundColor: 'hsl(var(--background))',
