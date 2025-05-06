@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -8,7 +9,7 @@ import { PromptInput } from "@/components/prompt-input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX, Loader2, ListPlus, Binary, Activity } from "lucide-react"; // Added PackageX icon and others
+import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX, Loader2, ListPlus, Binary, Activity, Check } from "lucide-react"; // Added PackageX icon and others, added Check
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Sidebar, SidebarTrigger, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent, SidebarSeparator, SidebarInput, SidebarInset } from "@/components/ui/sidebar"; // Import Sidebar components, Removed SidebarProvider
 import { Progress } from "@/components/ui/progress"; // Import Progress
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"; // Import Accordion
-
+import { cn } from "@/lib/utils"; // Import cn utility
 
 // Dynamically import CodeDisplay with a loading state
 const CodeDisplay = dynamic(
@@ -1149,4 +1150,3 @@ function getProviderNames(models: CombinedModel[]): string {
     if (providerList.length > 3) return `${providerList.slice(0, 3).join('/')} + Others`;
     return providerList.join(' | ');
 }
-
