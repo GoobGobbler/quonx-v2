@@ -16,9 +16,9 @@ import { listLocalOllamaModels, type OllamaModel } from '@/lib/ollama-client';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EditPopup } from "@/components/edit-popup";
-import { SettingsPanel } from "@/components/settings-panel"; // Import SettingsPanel
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
-import { Sidebar, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent, SidebarSeparator, SidebarInput, SidebarInset, SidebarMenuSkeleton } from "@/components/ui/sidebar"; // Import Sidebar components
+import { SettingsPanel, SETTINGS_STORAGE_KEY, AppSettings, defaultSettings } from "@/components/settings-panel"; // Import SettingsPanel and shared types/constants
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Keep for page-specific tooltips if needed
+import { Sidebar, SidebarTrigger, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent, SidebarSeparator, SidebarInput, SidebarInset } from "@/components/ui/sidebar"; // Import Sidebar components, Removed SidebarProvider
 
 
 // Define structure for combined models list
@@ -31,8 +31,6 @@ interface CombinedModel {
   unavailable?: boolean; // Flag for unavailable models due to missing plugins
 }
 
-// Key for localStorage settings
-const SETTINGS_STORAGE_KEY = 'codesynth_settings';
 
 // --- Potential Cloud Models (Activated based on Settings, but marked unavailable if plugin missing) ---
 const POTENTIAL_CLOUD_MODELS: CombinedModel[] = [
@@ -75,39 +73,6 @@ async function runValidationPipeline(code: string, prompt?: string): Promise<{ s
     return { success: success, message: message };
 }
 
-// Define settings structure (must match settings-panel.tsx)
-interface AppSettings {
-    ollamaBaseUrl: string;
-    googleApiKey: string;
-    openRouterApiKey: string;
-    huggingFaceApiKey: string;
-    themePreset: string;
-    font: string;
-    enableScanlines: boolean;
-    enableGrain: boolean;
-    enableGlow: boolean;
-    modelTimeoutSeconds: number;
-    maxOutputTokens: number;
-    validationThreshold: number;
-    enableAnalytics: boolean;
-}
-
-// Default settings (must match settings-panel.tsx)
-const defaultSettings: AppSettings = {
-    ollamaBaseUrl: 'http://127.0.0.1:11434',
-    googleApiKey: '',
-    openRouterApiKey: '',
-    huggingFaceApiKey: '',
-    themePreset: 'Retro Terminal',
-    font: 'Cutive Mono',
-    enableScanlines: true,
-    enableGrain: true,
-    enableGlow: true,
-    modelTimeoutSeconds: 120,
-    maxOutputTokens: 4096,
-    validationThreshold: 80,
-    enableAnalytics: false,
-};
 
 
 export default function Home() {
@@ -136,7 +101,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string | null>(null); // Example: Track active file tab
   const [openFiles, setOpenFiles] = useState<string[]>([]); // Example: Track open files
 
-  // Example file tree data (conceptual)
+  // Example file tree data (conceptual) - Initialize within useState
   const [fileTree, setFileTree] = useState([
       { id: 'src', name: 'src', type: 'folder', children: [
           { id: 'app', name: 'app', type: 'folder', children: [
@@ -175,6 +140,8 @@ export default function Home() {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (storedSettings) {
                 settings = JSON.parse(storedSettings);
+            } else {
+                settings = defaultSettings; // Use defaults if nothing is stored
             }
         } catch (e) {
             console.error("Failed to parse settings from localStorage:", e);
@@ -184,7 +151,10 @@ export default function Home() {
                  description: "Could not parse saved settings. Using defaults.",
                  className: "font-mono",
              });
+             settings = defaultSettings; // Fallback to defaults on parse error
         }
+    } else {
+        settings = defaultSettings; // Default settings if not in browser env
     }
 
     // Fetch Ollama models if base URL seems valid
@@ -433,7 +403,8 @@ export default function Home() {
            });
             // Reset status after a delay on success
            setTimeout(() => {
-                if (validationStatus === "Success") { // Check if status hasn't changed
+                // Check if status hasn't changed due to another action starting
+                if (validationStatus === "Success") {
                      setValidationStatus("Idle");
                      setValidationMessage(undefined);
                 }
@@ -481,14 +452,8 @@ export default function Home() {
   const handleRetry = () => {
        if (prompt || previousSuccessfulCode) { // Allow retry even if prompt is empty if there's previous code
            // Decide if it's a retry of initial generation or an edit
-           if (isEditPopupOpen) { // This state check might be tricky, better to pass context if needed
-               // If the edit popup was the source, maybe resubmit that?
-               // For simplicity, let's assume retry always uses the main prompt input
-               console.warn("Retry clicked, assuming retry of main prompt generation.");
-               handleGenerate(prompt, previousSuccessfulCode); // Retry with current prompt and last good code
-           } else {
-               handleGenerate(prompt, previousSuccessfulCode); // Retry with current prompt and last good code
-           }
+           // For simplicity, let's assume retry always uses the main prompt input
+           handleGenerate(prompt, previousSuccessfulCode); // Retry with current prompt and last good code
        } else {
            toast({ variant: "destructive", title: "ERR: Nothing to Retry", description: "Enter a prompt or load previous code.", className: "font-mono" });
        }
@@ -554,8 +519,7 @@ export default function Home() {
   };
 
   return (
-   <TooltipProvider delayDuration={100}> {/* Standard delay */}
-    <SidebarProvider>
+    // Remove TooltipProvider and SidebarProvider wrappers - handled in layout
        <div className="flex flex-col h-screen bg-background text-foreground p-1 md:p-2 border-2 border-border shadow-[inset_0_0_10px_hsla(var(--foreground)/0.1)] rounded-sm overflow-hidden">
        {/* Header */}
        <header className="p-2 border-b-2 border-border mb-2 flex justify-between items-center flex-shrink-0">
@@ -565,7 +529,7 @@ export default function Home() {
                <Terminal className="h-6 w-6 text-primary hidden sm:block"/>
               <div>
                  <h1 className="text-lg md:text-xl font-bold text-primary font-mono chromatic-aberration-light" data-text="CodeSynth_IDE">CodeSynth_IDE</h1>
-                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI Code Environment v0.3</p> {/* Version Bump */}
+                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI Code Environment v0.4</p> {/* Version Bump */}
              </div>
           </div>
            <div className="flex items-center space-x-3">
@@ -876,7 +840,7 @@ export default function Home() {
 
                  {/* Footer */}
                  <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-                 [ CodeSynth IDE v0.3 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
+                 [ CodeSynth IDE v0.4 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                </footer>
              </SidebarInset>
         </div>
@@ -897,8 +861,6 @@ export default function Home() {
        {/* Pass fetchAndCombineModels to SettingsPanel so it can trigger a refresh on save */}
        {isSettingsOpen && <SettingsPanel onClose={() => {setIsSettingsOpen(false); fetchAndCombineModels();}} />}
     </div>
-   </SidebarProvider>
-   </TooltipProvider>
   );
 }
 
@@ -921,3 +883,4 @@ function getProviderNames(models: CombinedModel[]): string {
     if (providerList.length > 3) return `${providerList.slice(0, 3).join('/')} + Others`;
     return providerList.join(' | ');
 }
+

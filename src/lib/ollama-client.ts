@@ -103,5 +103,3 @@ export async function listLocalOllamaModels(ollamaBaseUrl: string): Promise<Olla
      throw new Error(`Failed to list models from Ollama at ${ollamaBaseUrl}: ${error.message}`);
   }
 }
-
-```

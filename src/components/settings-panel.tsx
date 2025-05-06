@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 // Correctly import Settings icon
-import { Settings, X, Palette, Cpu, Code, GitBranch, Cloud, Settings2, Save, Beaker, ShieldCheck, TestTubeDiagonal, Users, Construction, LayoutPanelLeft } from 'lucide-react';
+import { Settings as SettingsIcon, X, Palette, Cpu, Code, GitBranch, Cloud, Settings2, Save, Beaker, ShieldCheck, TestTubeDiagonal, Users, Construction, LayoutPanelLeft } from 'lucide-react'; // Renamed Settings to SettingsIcon
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from './ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select components
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
+
 
 // Define the shape of our settings (ensure consistency with page.tsx)
 export interface AppSettings {
@@ -29,6 +31,20 @@ export interface AppSettings {
     maxOutputTokens: number;
     validationThreshold: number; // Example: 0-100 scale
     enableAnalytics: boolean; // Example for Experiments tab
+    // Conceptual fields for IDE/Plugin/Deployment features
+    githubPat?: string; // Optional GitHub PAT
+    gitlabToken?: string; // Optional GitLab Token
+    defaultGitBranch?: string;
+    enableCommitSigning?: boolean;
+    firebaseProjectId?: string;
+    cloudRunRegion?: string;
+    deploymentWebhook?: string;
+    editorTabSize?: number;
+    editorAutoSave?: boolean;
+    editorWordWrap?: boolean;
+    editorKeybindings?: string;
+    enableMultimodalInput?: boolean; // Experimental
+    enableAgentCollaboration?: boolean; // Experimental
 }
 
 // Default settings (ensure consistency with page.tsx)
@@ -46,6 +62,20 @@ export const defaultSettings: AppSettings = {
     maxOutputTokens: 4096, // Default token limit
     validationThreshold: 80, // Default validation level (conceptual)
     enableAnalytics: false, // Default experiment setting (conceptual)
+    // Conceptual defaults
+    githubPat: '',
+    gitlabToken: '',
+    defaultGitBranch: 'main',
+    enableCommitSigning: false,
+    firebaseProjectId: '',
+    cloudRunRegion: '',
+    deploymentWebhook: '',
+    editorTabSize: 4,
+    editorAutoSave: false,
+    editorWordWrap: true,
+    editorKeybindings: 'default',
+    enableMultimodalInput: false,
+    enableAgentCollaboration: false,
 };
 
 // Key for localStorage
@@ -66,6 +96,14 @@ const availableThemes = [
     { value: '80s Matrix', label: '80s Matrix (Not Implemented)' },
     // TODO: Add more theme options
 ];
+
+// Editor Keybindings (Conceptual)
+const editorKeybindingsOptions = [
+    { value: 'default', label: 'Default' },
+    { value: 'vim', label: 'Vim (Conceptual)' },
+    { value: 'emacs', label: 'Emacs (Conceptual)' },
+];
+
 
 interface SettingsPanelProps {
   onClose: () => void; // Callback when panel is closed (usually involves refetching models)
@@ -104,10 +142,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   // Handle input changes (covers text, number, password)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, valueAsNumber } = e.target;
+    const { name, value, type } = e.target;
+    // Use 'valueAsNumber' for number inputs, fall back to empty string if NaN
+    const newValue = type === 'number'
+        ? (isNaN(e.target.valueAsNumber) ? '' : e.target.valueAsNumber)
+        : value;
+
     setSettings(prev => ({
       ...prev,
-      [name]: type === 'number' ? (isNaN(valueAsNumber) ? '' : valueAsNumber) : value, // Handle number conversion more robustly
+      [name]: newValue,
     }));
   };
 
@@ -136,25 +179,30 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
              toast({ variant: "destructive", title: "Invalid Ollama URL", description: "Ollama Base URL must be a valid http/https URL.", className: "font-mono" });
              return;
         }
-        if (isNaN(Number(settings.modelTimeoutSeconds)) || Number(settings.modelTimeoutSeconds) <= 0) {
-           toast({ variant: "destructive", title: "Invalid Timeout", description: "Model timeout must be a positive number.", className: "font-mono" });
-           return;
-        }
-        if (isNaN(Number(settings.maxOutputTokens)) || Number(settings.maxOutputTokens) <= 0) {
-            toast({ variant: "destructive", title: "Invalid Token Limit", description: "Max output tokens must be a positive number.", className: "font-mono" });
+         // Validate number fields more carefully, allowing empty string but not invalid numbers
+         if (settings.modelTimeoutSeconds !== '' && (isNaN(Number(settings.modelTimeoutSeconds)) || Number(settings.modelTimeoutSeconds) <= 0)) {
+            toast({ variant: "destructive", title: "Invalid Timeout", description: "Model timeout must be a positive number.", className: "font-mono" });
             return;
-        }
-         if (isNaN(Number(settings.validationThreshold)) || Number(settings.validationThreshold) < 0 || Number(settings.validationThreshold) > 100) {
-            toast({ variant: "destructive", title: "Invalid Validation Threshold", description: "Threshold must be between 0 and 100.", className: "font-mono" });
-            return;
-        }
+         }
+         if (settings.maxOutputTokens !== '' && (isNaN(Number(settings.maxOutputTokens)) || Number(settings.maxOutputTokens) <= 0)) {
+             toast({ variant: "destructive", title: "Invalid Token Limit", description: "Max output tokens must be a positive number.", className: "font-mono" });
+             return;
+         }
+          if (settings.validationThreshold !== '' && (isNaN(Number(settings.validationThreshold)) || Number(settings.validationThreshold) < 0 || Number(settings.validationThreshold) > 100)) {
+             toast({ variant: "destructive", title: "Invalid Validation Threshold", description: "Threshold must be between 0 and 100.", className: "font-mono" });
+             return;
+         }
+         if (settings.editorTabSize !== '' && (isNaN(Number(settings.editorTabSize)) || Number(settings.editorTabSize) < 1)) {
+             toast({ variant: "destructive", title: "Invalid Tab Size", description: "Tab Size must be a positive number.", className: "font-mono" });
+             return;
+         }
         // Add more validation as needed...
 
         // --- Save ---
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
         toast({
             title: "Settings Saved",
-            description: "Configuration matrix updated. Reload may be required.",
+            description: "Configuration matrix updated. Manual reload may be needed for theme/font.",
             className: "font-mono border-primary text-primary",
         });
         onClose(); // Close panel and trigger model refresh in parent via the onClose callback
@@ -211,7 +259,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         {/* Header */}
         <h2 className="text-lg font-mono text-primary mb-3 border-b border-border pb-2 flex items-center flex-shrink-0">
-           <Settings className="mr-2 h-5 w-5"/> // Configuration_Matrix //
+           <SettingsIcon className="mr-2 h-5 w-5"/> // Configuration_Matrix // {/* Use renamed SettingsIcon */}
         </h2>
 
         {/* Tabs */}
@@ -340,30 +388,35 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
              {/* --- Editor Settings --- */}
             <TabsContent value="editor" className="mt-0 space-y-4">
-                 <h3 className="font-semibold text-secondary">// Editor Preferences (Conceptual)</h3>
-                 <p className="text-sm text-muted-foreground font-mono">// These settings are placeholders and not yet functional.</p>
-                 <div className="space-y-1 opacity-50">
-                    <Label htmlFor="tabSize" className="text-xs font-mono text-muted-foreground">// Tab Size:</Label>
-                    <Input id="tabSize" name="tabSize" type="number" min="1" defaultValue="4" disabled className="bg-input border-border rounded-none text-xs font-mono"/>
+                 <h3 className="font-semibold text-secondary">// Editor Preferences</h3>
+                 {/* <p className="text-sm text-muted-foreground font-mono">// These settings are placeholders and not yet functional.</p> */}
+                 <div className="space-y-1">
+                    <Label htmlFor="editorTabSize" className="text-xs font-mono text-muted-foreground">// Tab Size:</Label>
+                    <Input id="editorTabSize" name="editorTabSize" type="number" min="1" value={settings.editorTabSize ?? ''} onChange={handleInputChange} className="bg-input border-border rounded-none text-xs font-mono"/>
                  </div>
-                  <div className="flex items-center space-x-2 opacity-50">
-                      <Switch id="autoSave" name="autoSave" disabled />
-                      <Label htmlFor="autoSave" className="text-xs font-mono">Enable Auto Save</Label>
+                  <div className="flex items-center space-x-2">
+                      <Switch id="editorAutoSave" name="editorAutoSave" checked={settings.editorAutoSave ?? false} onCheckedChange={(checked) => handleSwitchChange(checked, 'editorAutoSave')} />
+                      <Label htmlFor="editorAutoSave" className="text-xs font-mono">Enable Auto Save (Conceptual)</Label>
                   </div>
-                  <div className="flex items-center space-x-2 opacity-50">
-                      <Switch id="wordWrap" name="wordWrap" disabled />
-                      <Label htmlFor="wordWrap" className="text-xs font-mono">Enable Word Wrap</Label>
+                  <div className="flex items-center space-x-2">
+                      <Switch id="editorWordWrap" name="editorWordWrap" checked={settings.editorWordWrap ?? true} onCheckedChange={(checked) => handleSwitchChange(checked, 'editorWordWrap')} />
+                      <Label htmlFor="editorWordWrap" className="text-xs font-mono">Enable Word Wrap (Conceptual)</Label>
                   </div>
-                  <div className="space-y-1 opacity-50">
-                     <Label htmlFor="keybindings" className="text-xs font-mono text-muted-foreground">// Keybindings:</Label>
-                       <Select name="keybindings" defaultValue="default" disabled>
+                  <div className="space-y-1">
+                     <Label htmlFor="editorKeybindings" className="text-xs font-mono text-muted-foreground">// Keybindings:</Label>
+                       <Select name="editorKeybindings" value={settings.editorKeybindings ?? 'default'} onValueChange={(value) => handleSelectChange(value, 'editorKeybindings')}>
                           <SelectTrigger className="bg-input border-border rounded-none text-xs font-mono">
                               <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="font-mono text-xs rounded-none">
-                              <SelectItem value="default">Default</SelectItem>
-                              <SelectItem value="vim">Vim</SelectItem>
-                              <SelectItem value="emacs">Emacs</SelectItem>
+                             <SelectGroup>
+                                <SelectLabel className="font-mono text-xs">Keybinding Presets</SelectLabel>
+                                {editorKeybindingsOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value} disabled={opt.label.includes('Conceptual')}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                              </SelectGroup>
                           </SelectContent>
                        </Select>
                    </div>
@@ -371,49 +424,51 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
              {/* --- Version Control Settings --- */}
              <TabsContent value="version-control" className="mt-0 space-y-4">
-                  <h3 className="font-semibold text-secondary">// Version Control (Git) (Conceptual)</h3>
-                  <p className="text-sm text-muted-foreground font-mono">// Git integration is not yet implemented.</p>
-                   <div className="space-y-1 opacity-50">
+                  <h3 className="font-semibold text-secondary">// Version Control (Git)</h3>
+                  {/* <p className="text-sm text-muted-foreground font-mono">// Git integration is not yet implemented.</p> */}
+                   <div className="space-y-1">
                       <Label htmlFor="githubPat" className="text-xs font-mono text-muted-foreground">// GitHub Personal Access Token:</Label>
-                      <Input id="githubPat" name="githubPat" type="password" disabled placeholder="Enter GitHub PAT" className="bg-input border-border rounded-none text-xs font-mono"/>
+                      <Input id="githubPat" name="githubPat" type="password" value={settings.githubPat ?? ''} onChange={handleInputChange} placeholder="Enter GitHub PAT" className="bg-input border-border rounded-none text-xs font-mono"/>
                    </div>
-                   <div className="space-y-1 opacity-50">
+                   <div className="space-y-1">
                       <Label htmlFor="gitlabToken" className="text-xs font-mono text-muted-foreground">// GitLab Personal Access Token:</Label>
-                      <Input id="gitlabToken" name="gitlabToken" type="password" disabled placeholder="Enter GitLab PAT" className="bg-input border-border rounded-none text-xs font-mono"/>
+                      <Input id="gitlabToken" name="gitlabToken" type="password" value={settings.gitlabToken ?? ''} onChange={handleInputChange} placeholder="Enter GitLab PAT" className="bg-input border-border rounded-none text-xs font-mono"/>
                    </div>
-                   <div className="space-y-1 opacity-50">
-                      <Label htmlFor="defaultBranch" className="text-xs font-mono text-muted-foreground">// Default Branch Name:</Label>
-                      <Input id="defaultBranch" name="defaultBranch" defaultValue="main" disabled className="bg-input border-border rounded-none text-xs font-mono"/>
+                   <div className="space-y-1">
+                      <Label htmlFor="defaultGitBranch" className="text-xs font-mono text-muted-foreground">// Default Branch Name:</Label>
+                      <Input id="defaultGitBranch" name="defaultGitBranch" value={settings.defaultGitBranch ?? 'main'} onChange={handleInputChange} className="bg-input border-border rounded-none text-xs font-mono"/>
                    </div>
-                   <div className="flex items-center space-x-2 opacity-50">
-                      <Switch id="commitSigning" name="commitSigning" disabled />
-                      <Label htmlFor="commitSigning" className="text-xs font-mono">Enable Commit Signing (GPG)</Label>
+                   <div className="flex items-center space-x-2">
+                      <Switch id="enableCommitSigning" name="enableCommitSigning" checked={settings.enableCommitSigning ?? false} onCheckedChange={(checked) => handleSwitchChange(checked, 'enableCommitSigning')} />
+                      <Label htmlFor="enableCommitSigning" className="text-xs font-mono">Enable Commit Signing (GPG - Conceptual)</Label>
                   </div>
+                  <p className="text-xs text-muted-foreground font-mono pt-1"> // Configure Git provider tokens and preferences (integration conceptual).</p>
              </TabsContent>
 
              {/* --- Deployments Settings --- */}
              <TabsContent value="deployments" className="mt-0 space-y-4">
-                  <h3 className="font-semibold text-secondary">// Deployment Targets (Conceptual)</h3>
-                  <p className="text-sm text-muted-foreground font-mono">// Deployment integration (Firebase, Cloud Run) is not yet implemented.</p>
-                   <div className="space-y-1 opacity-50">
+                  <h3 className="font-semibold text-secondary">// Deployment Targets</h3>
+                  {/* <p className="text-sm text-muted-foreground font-mono">// Deployment integration (Firebase, Cloud Run) is not yet implemented.</p> */}
+                   <div className="space-y-1">
                       <Label htmlFor="firebaseProjectId" className="text-xs font-mono text-muted-foreground">// Firebase Project ID:</Label>
-                      <Input id="firebaseProjectId" name="firebaseProjectId" disabled placeholder="Enter Firebase Project ID" className="bg-input border-border rounded-none text-xs font-mono"/>
+                      <Input id="firebaseProjectId" name="firebaseProjectId" value={settings.firebaseProjectId ?? ''} onChange={handleInputChange} placeholder="Enter Firebase Project ID" className="bg-input border-border rounded-none text-xs font-mono"/>
                    </div>
-                    <div className="space-y-1 opacity-50">
+                    <div className="space-y-1">
                       <Label htmlFor="cloudRunRegion" className="text-xs font-mono text-muted-foreground">// Google Cloud Run Region:</Label>
-                      <Input id="cloudRunRegion" name="cloudRunRegion" disabled placeholder="e.g., us-central1" className="bg-input border-border rounded-none text-xs font-mono"/>
+                      <Input id="cloudRunRegion" name="cloudRunRegion" value={settings.cloudRunRegion ?? ''} onChange={handleInputChange} placeholder="e.g., us-central1" className="bg-input border-border rounded-none text-xs font-mono"/>
                    </div>
-                    <div className="space-y-1 opacity-50">
+                    <div className="space-y-1">
                       <Label htmlFor="deploymentWebhook" className="text-xs font-mono text-muted-foreground">// Custom Deployment Webhook URL:</Label>
-                      <Input id="deploymentWebhook" name="deploymentWebhook" type="url" disabled placeholder="Enter Webhook URL" className="bg-input border-border rounded-none text-xs font-mono"/>
+                      <Input id="deploymentWebhook" name="deploymentWebhook" type="url" value={settings.deploymentWebhook ?? ''} onChange={handleInputChange} placeholder="Enter Webhook URL" className="bg-input border-border rounded-none text-xs font-mono"/>
                    </div>
+                   <p className="text-xs text-muted-foreground font-mono pt-1"> // Configure targets for one-click deployments (integration conceptual).</p>
              </TabsContent>
 
              {/* --- Advanced Settings --- */}
              <TabsContent value="advanced" className="mt-0 space-y-4">
-                  <h3 className="font-semibold text-secondary">// Advanced Configuration (Conceptual)</h3>
-                  <p className="text-sm text-muted-foreground font-mono">// Advanced settings (validation pipeline, plugins) are not yet implemented.</p>
-                    <div className="space-y-1 opacity-50">
+                  <h3 className="font-semibold text-secondary">// Advanced Configuration</h3>
+                  {/* <p className="text-sm text-muted-foreground font-mono">// Advanced settings (validation pipeline, plugins) are not yet implemented.</p> */}
+                    <div className="space-y-1">
                       <Label htmlFor="validationThreshold" className="text-xs font-mono text-muted-foreground">// Validation Pipeline Sensitivity (0-100):</Label>
                       <Input id="validationThreshold" name="validationThreshold" type="number" min="0" max="100" value={settings.validationThreshold} onChange={handleInputChange} placeholder="80" className="bg-input border-border rounded-none text-xs font-mono"/>
                       <p className="text-xs text-muted-foreground font-mono">// Controls strictness of the pre-apply validation (conceptual).</p>
@@ -423,15 +478,16 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                        <Label className="font-mono text-sm text-muted">// Plugin Management:</Label>
                        <p className="text-xs text-muted-foreground"> // List installed plugins and enable/disable (Not Implemented).</p>
                        <div className="p-2 border rounded-sm bg-input h-24 overflow-y-auto">
-                            <p className="text-xs">[ ] Language Support: TypeScript</p>
-                            <p className="text-xs">[ ] Linter: ESLint (Default)</p>
+                            <p className="text-xs">[x] Language Support: TypeScript</p>
+                            <p className="text-xs">[x] Linter: ESLint (Default)</p>
+                            <p className="text-xs">[ ] Theme: Cyberpunk Night</p>
                        </div>
                    </div>
              </TabsContent>
 
              {/* --- Experiments Settings --- */}
             <TabsContent value="experiments" className="mt-0 space-y-4">
-                <h3 className="font-semibold text-secondary">// Experimental Features (Conceptual)</h3>
+                <h3 className="font-semibold text-secondary">// Experimental Features</h3>
                 <p className="text-sm text-muted-foreground font-mono">// Toggle experimental or unstable features. Use with caution.</p>
                  <div className="flex items-center space-x-2">
                       <Switch id="enableAnalytics" name="enableAnalytics" checked={settings.enableAnalytics} onCheckedChange={(checked) => handleSwitchChange(checked, 'enableAnalytics')} />
@@ -439,13 +495,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   </div>
                   <Separator className="bg-border/30"/>
                   {/* Add more experimental flags here */}
-                  <div className="flex items-center space-x-2 opacity-50">
-                      <Switch id="enableMultimodal" name="enableMultimodal" disabled />
-                      <Label htmlFor="enableMultimodal" className="text-xs font-mono">Enable Multimodal Input (Vision/Audio - Not Implemented)</Label>
+                  <div className="flex items-center space-x-2">
+                      <Switch id="enableMultimodalInput" name="enableMultimodalInput" checked={settings.enableMultimodalInput ?? false} onCheckedChange={(checked) => handleSwitchChange(checked, 'enableMultimodalInput')}/>
+                      <Label htmlFor="enableMultimodalInput" className="text-xs font-mono">Enable Multimodal Input (Vision/Audio - Conceptual)</Label>
                   </div>
-                  <div className="flex items-center space-x-2 opacity-50">
-                      <Switch id="enableAgentCollaboration" name="enableAgentCollaboration" disabled />
-                      <Label htmlFor="enableAgentCollaboration" className="text-xs font-mono">Enable AI Agent Collaboration (Not Implemented)</Label>
+                  <div className="flex items-center space-x-2">
+                      <Switch id="enableAgentCollaboration" name="enableAgentCollaboration" checked={settings.enableAgentCollaboration ?? false} onCheckedChange={(checked) => handleSwitchChange(checked, 'enableAgentCollaboration')} />
+                      <Label htmlFor="enableAgentCollaboration" className="text-xs font-mono">Enable AI Agent Collaboration (Conceptual)</Label>
                   </div>
             </TabsContent>
            </div>
@@ -472,5 +528,3 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     </div>
   );
 }
-
-```

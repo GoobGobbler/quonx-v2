@@ -8,6 +8,9 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import React, { useState, useEffect } from 'react'; // Import useState and useEffect
 import { cn } from '@/lib/utils'; // Import cn utility
+import { AppSettings, defaultSettings, SETTINGS_STORAGE_KEY } from '@/components/settings-panel'; // Import settings types and constants
+import { TooltipProvider } from '@/components/ui/tooltip'; // Ensure TooltipProvider wraps the layout
+import { SidebarProvider } from '@/components/ui/sidebar'; // Ensure SidebarProvider wraps layout
 
 // Configure fonts
 const cutiveMono = Cutive_Mono({
@@ -38,33 +41,13 @@ const fontVariables = `${cutiveMono.variable} ${sourceCodePro.variable} ${vt323.
 // };
 // We will set the title dynamically in the component if needed, or keep it static.
 
-// Define settings structure (mirror from settings-panel)
-interface AppSettings {
-    ollamaBaseUrl: string;
-    googleApiKey: string;
-    openRouterApiKey: string;
-    themePreset: string;
-    font: string;
-    enableScanlines: boolean;
-    enableGrain: boolean;
-    enableGlow: boolean;
-}
-
-const defaultSettings: Partial<AppSettings> = { // Use Partial for defaults
-    font: 'Cutive Mono',
-    enableScanlines: true,
-    enableGrain: true,
-    enableGlow: true,
-};
-
-const SETTINGS_STORAGE_KEY = 'codesynth_settings';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [settings, setSettings] = useState<Partial<AppSettings>>(defaultSettings);
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [isClient, setIsClient] = useState(false); // Track if running on client
 
   useEffect(() => {
@@ -73,13 +56,16 @@ export default function RootLayout({
       const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (storedSettings) {
         const parsedSettings = JSON.parse(storedSettings);
+        // Merge defaults with stored settings to handle missing/new keys gracefully
         setSettings({ ...defaultSettings, ...parsedSettings });
+      } else {
+         setSettings(defaultSettings); // Explicitly set defaults if nothing stored
       }
     } catch (error) {
       console.error("Failed to load settings in layout:", error);
-      // Keep default settings
+      setSettings(defaultSettings); // Fallback to defaults on error
     }
-  }, []);
+  }, []); // Run once on mount
 
   const getFontClassName = (fontName: string | undefined) => {
       switch (fontName) {
@@ -92,39 +78,33 @@ export default function RootLayout({
 
   // Determine body classes based on settings
   const bodyClasses = cn(
-    'font-mono antialiased bg-background text-foreground', // Base classes
-    getFontClassName(settings.font),
+    'font-mono antialiased bg-background text-foreground min-h-screen', // Base classes, ensure min-h-screen
+    getFontClassName(settings.font), // Apply font class dynamically
     {
       'scanlines-effect': settings.enableScanlines,
       'grain-effect': settings.enableGrain,
       // Glow effect is often applied to specific elements, not the body
-    },
-    isClient ? '' : 'invisible' // Prevent hydration mismatch flash by hiding server render initially
+    }
+    // Removed: isClient ? '' : 'invisible' - Simplify to avoid potential hiding issues
   );
 
 
   return (
-    // Add font variables to html tag
-    <html lang="en" className={`${fontVariables} dark`}>
+    // Add font variables to html tag, enforce dark mode
+    <html lang="en" className={cn(fontVariables, 'dark')}>
        <head>
            {/* Static metadata can go here */}
-           <title>CodeSynth Terminal - Multi-AI IDE Platform</title>
-           <meta name="description" content="Collaborative AI-powered development with Ollama, Gemini, OpenRouter support, MLOps, security scanning, and advanced IDE features in a retro-futuristic terminal." />
+           <title>CodeSynth Terminal - AI IDE Platform</title>
+           <meta name="description" content="AI-powered development environment with support for multiple models and advanced IDE features." />
        </head>
        <body className={bodyClasses}>
-           {/* Conditionally render children only after client-side settings are loaded */}
-            {isClient ? (
-                 <>
-                     {/* TODO: Add providers */}
+           {/* Wrap children with necessary providers */}
+            <TooltipProvider delayDuration={100}>
+                <SidebarProvider>
                      {children}
                      <Toaster />
-                 </>
-             ) : (
-                 // Optional: Render a simple loading state or nothing during SSR/initial load
-                 <div className="flex items-center justify-center h-screen">
-                     <p className="text-muted-foreground animate-pulse">Initializing Interface...</p>
-                 </div>
-             )}
+                </SidebarProvider>
+            </TooltipProvider>
        </body>
     </html>
   );
