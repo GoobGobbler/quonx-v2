@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Sidebar, SidebarTrigger, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent, SidebarSeparator, SidebarInput, SidebarInset } from "@/components/ui/sidebar"; // Import Sidebar components, Removed SidebarProvider
 import { Progress } from "@/components/ui/progress"; // Import Progress
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"; // Import Accordion
-import { cn } from "@/lib/utils"; // Import cn utility
+import { cn } from '@/lib/utils'; // Import cn utility
 
 // Dynamically import CodeDisplay with a loading state
 const CodeDisplay = dynamic(
@@ -261,19 +261,16 @@ export default function Home() {
     if (settings.googleApiKey) {
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Google AI' && !m.unavailable));
     }
-    if (settings.openRouterApiKey) {
-        // Add OpenRouter models but keep marked as unavailable if plugin is missing
-        configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
-        if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'OpenRouter' && m.unavailable)) {
-            pluginWarnings.push("OpenRouter integration unavailable (@genkit-ai/openrouter@1.8.0 not found)");
-        }
+    // Add OpenRouter models but keep marked as unavailable if plugin is missing
+    configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
+    if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'OpenRouter' && m.unavailable)) {
+        pluginWarnings.push("OpenRouter integration unavailable (@genkit-ai/openrouter@1.8.0 not found)");
     }
-     if (settings.huggingFaceApiKey) {
-        // Add Hugging Face models but keep marked as unavailable if plugin is missing
-        configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
-         if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'Hugging Face' && m.unavailable)) {
-            pluginWarnings.push("HuggingFace integration unavailable (@genkit-ai/huggingface@1.8.0 not found)");
-        }
+
+    // Add Hugging Face models but keep marked as unavailable if plugin is missing
+    configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
+    if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'Hugging Face' && m.unavailable)) {
+        pluginWarnings.push("HuggingFace integration unavailable (@genkit-ai/huggingface@1.8.0 not found)");
     }
 
 

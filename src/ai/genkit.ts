@@ -23,7 +23,7 @@ if (process.env.GOOGLE_API_KEY) {
   console.warn("Genkit: GOOGLE_API_KEY not found in environment. Google AI plugin disabled.");
 }
 
-// Log warnings that OpenRouter and HuggingFace plugins are unavailable
+// Log warnings that OpenRouter and HuggingFace plugins are unavailable due to missing packages
 console.warn("Genkit: OpenRouter plugin unavailable (@genkit-ai/openrouter@1.8.0 not found).");
 console.warn("Genkit: Hugging Face plugin unavailable (@genkit-ai/huggingface@1.8.0 not found).");
 
