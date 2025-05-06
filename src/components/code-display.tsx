@@ -6,8 +6,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Choose a dark, terminal-friendly theme like 'vscDarkPlus', 'okaidia', 'materialDark', or 'oneDark'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Choose a dark, terminal-friendly theme like 'oneDark', 'okaidia', 'materialDark'
+// Using 'oneDark' as it's commonly included and avoids the potential resolution issue with 'vscDarkPlus'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils"; // Import cn for conditional classes
 
@@ -33,7 +34,7 @@ export function CodeDisplay({
 
   // Defer setting displayCode and currentYear until client-side mount
   useEffect(() => {
-    // Set initial placeholder text
+    // Set initial placeholder text or actual code
     setDisplayCode(code || "// Output buffer empty. Execute generation command...");
     setCurrentYear(new Date().getFullYear());
   }, [code]); // Update when code prop changes
@@ -74,8 +75,8 @@ export function CodeDisplay({
     // Main container div with passed classes
     <div className={cn("h-full flex flex-col bg-background border-border shadow-inner overflow-hidden rounded-none", containerClassName)}>
       {/* Header Section */}
-      <div className="flex flex-row items-center justify-between pb-1 px-3 pt-2 border-b border-border">
-        <h2 className="text-base font-semibold font-mono text-primary">{title}</h2>
+      <div className="flex flex-row items-center justify-between pb-1 px-3 pt-2 border-b border-border flex-shrink-0">
+        <h2 className="text-sm font-semibold font-mono text-primary truncate" title={title}>{title}</h2>
         <Button
           variant="ghost"
           size="icon"
@@ -114,20 +115,19 @@ export function CodeDisplay({
           {displayCode !== null ? (
              <SyntaxHighlighter
                 language={language}
-                style={vscDarkPlus} // Use a dark terminal theme
+                style={oneDark} // Use 'oneDark' theme
                 customStyle={{
                     margin: 0,
-                    // Use background directly, remove card dependency
-                    backgroundColor: 'hsl(var(--background))',
+                    backgroundColor: 'hsl(var(--background))', // Use CSS variable for background
                     color: 'hsl(var(--foreground))', // Ensure text color matches foreground
                     height: '100%',
                     overflow: 'auto',
                     fontSize: '0.8rem', // Slightly smaller font for terminal feel
                     padding: '0.5rem 1rem', // Adjust padding
-                    fontFamily: 'var(--font-cutive-mono), monospace', // Consistent font
+                    fontFamily: 'var(--font-source-code-pro, var(--font-cutive-mono, monospace))', // Consistent font from layout
                     lineHeight: '1.4', // Adjust line height
                 }}
-                 codeTagProps={{ style: { fontFamily: 'var(--font-cutive-mono), monospace' } }}
+                 codeTagProps={{ style: { fontFamily: 'inherit' } }} // Inherit font family
                  wrapLongLines={true}
                  showLineNumbers={true}
                  // Terminal-style line numbers
@@ -145,7 +145,7 @@ export function CodeDisplay({
       </div>
 
       {/* Footer Section */}
-       <div className="text-xs text-muted-foreground pt-1 px-3 pb-1 border-t border-border font-mono min-h-[25px] flex items-center">
+       <div className="text-xs text-muted-foreground pt-1 px-3 pb-1 border-t border-border font-mono min-h-[25px] flex items-center flex-shrink-0">
          {isLoading ? (
              <>
                <Loader2 className="h-3 w-3 animate-spin mr-2" /> Transmitting...

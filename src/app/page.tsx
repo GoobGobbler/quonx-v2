@@ -1,14 +1,14 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from 'next/dynamic'; // Import next/dynamic
 import { generateCodeFromPrompt, type GenerateCodeFromPromptInput } from "@/ai/flows/generate-code-from-prompt";
 import { PromptInput } from "@/components/prompt-input";
-import { CodeDisplay } from "@/components/code-display";
+// import { CodeDisplay } from "@/components/code-display"; // Comment out static import
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX } from "lucide-react"; // Added PackageX icon
+import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX, Loader2, ListPlus, Binary, Activity } from "lucide-react"; // Added PackageX icon and others
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +19,25 @@ import { EditPopup } from "@/components/edit-popup";
 import { SettingsPanel, SETTINGS_STORAGE_KEY, AppSettings, defaultSettings } from "@/components/settings-panel"; // Import SettingsPanel and shared types/constants
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Keep for page-specific tooltips if needed
 import { Sidebar, SidebarTrigger, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction, SidebarMenuBadge, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarGroup, SidebarGroupLabel, SidebarGroupAction, SidebarGroupContent, SidebarSeparator, SidebarInput, SidebarInset } from "@/components/ui/sidebar"; // Import Sidebar components, Removed SidebarProvider
+import { Progress } from "@/components/ui/progress"; // Import Progress
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"; // Import Accordion
 
+
+// Dynamically import CodeDisplay with a loading state
+const CodeDisplay = dynamic(
+  () => import('@/components/code-display').then((mod) => mod.CodeDisplay),
+  {
+    ssr: false, // Disable server-side rendering for this component
+    loading: () => ( // Optional loading component
+        <div className="flex-grow flex flex-col border border-border rounded-sm shadow-[inset_0_0_5px_hsla(var(--border)/0.2)] min-h-[300px] lg:min-h-0 p-4 items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground font-mono">// Loading Code Buffer...</p>
+            <Skeleton className="h-4 w-3/4 mt-4 bg-muted/50" />
+            <Skeleton className="h-4 w-5/6 mt-2 bg-muted/50" />
+        </div>
+    ),
+  }
+);
 
 // Define structure for combined models list
 interface CombinedModel {
@@ -37,6 +55,7 @@ const POTENTIAL_CLOUD_MODELS: CombinedModel[] = [
   // Google AI / Gemini Models (Requires GOOGLE_API_KEY in Settings)
   { id: 'googleai/gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google AI', description: 'Fast, versatile model for general tasks' },
   { id: 'googleai/gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', provider: 'Google AI', description: 'Most capable model for complex tasks' },
+  { id: 'googleai/gemini-pro-vision', name: 'Gemini Pro Vision', provider: 'Google AI', description: 'Vision-capable model (Requires multimodal support)'}, // Added Vision
 
   // OpenRouter models (Require OPENROUTER_API_KEY, but plugin@1.8.0 is unavailable)
   { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
@@ -47,32 +66,53 @@ const POTENTIAL_CLOUD_MODELS: CombinedModel[] = [
 
   // Hugging Face models (Require HF_API_KEY, but plugin@1.8.0 is unavailable)
   { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Unavailable (@genkit-ai/huggingface@1.8.0 not found)', unavailable: true },
+  { id: 'huggingface/meta-llama/Meta-Llama-3-8B-Instruct', name: 'Llama 3 8B Instruct (HF)', provider: 'Hugging Face', description: 'Unavailable (@genkit-ai/huggingface@1.8.0 not found)', unavailable: true }, // Example HF model
 ];
 // --- End Potential Cloud Models ---
 
 // Placeholder function for conceptual validation pipeline
-async function runValidationPipeline(code: string, prompt?: string): Promise<{ success: boolean; message?: string }> {
+async function runValidationPipeline(code: string, prompt?: string): Promise<{ success: boolean; message?: string; steps?: { name: string; status: 'passed' | 'failed' | 'skipped' }[] }> {
     console.log("Running conceptual validation pipeline...", { codeLength: code.length, prompt });
     // Simulate async work (e.g., calling a linter or test runner)
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
-    // In a real implementation:
-    // 1. Parse the code (check syntax)
-    // 2. Run linters (e.g., ESLint)
-    // 3. Check dependencies (if possible)
-    // 4. Optionally run tests in a sandboxed environment
-    const success = Math.random() > 0.15; // Simulate 85% success rate for demo
-    const messages = [
-        "Syntax error on line 15 (simulated).",
-        "Dependency 'lodash' not found (simulated).",
-        "Test suite failed: 2/5 tests passed (simulated).",
-        "Security vulnerability detected: Use of eval() (simulated).",
-        "Code style violation: Max line length exceeded (simulated)."
+    await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 400));
+
+    const steps = [
+        { name: "Syntax Check", status: Math.random() > 0.05 ? 'passed' : 'failed' as 'passed' | 'failed' },
+        { name: "Dependency Check", status: 'skipped' as 'passed' | 'failed' | 'skipped' }, // Placeholder
+        { name: "Linter (ESLint)", status: Math.random() > 0.1 ? 'passed' : 'failed' as 'passed' | 'failed' },
+        { name: "Security Scan (Snyk)", status: 'skipped' as 'passed' | 'failed' | 'skipped' }, // Placeholder
+        { name: "Unit Tests", status: 'skipped' as 'passed' | 'failed' | 'skipped' }, // Placeholder
     ];
-    const message = success ? "Validation passed (Conceptual)" : messages[Math.floor(Math.random() * messages.length)];
-    console.log("Validation Result:", { success, message });
-    return { success: success, message: message };
+
+    // Determine overall success based on critical steps
+    const success = steps.every(step => step.status === 'passed' || step.status === 'skipped');
+
+    const failedStep = steps.find(step => step.status === 'failed');
+    const message = success ? "Validation passed (Conceptual)" : `Failed at step: ${failedStep?.name || 'Unknown'}`;
+
+    console.log("Validation Result:", { success, message, steps });
+    return { success, message, steps };
 }
 
+// File tree node structure
+interface FileTreeNode {
+    id: string;
+    name: string;
+    type: 'folder' | 'file';
+    path: string; // Full path for easier handling
+    children?: FileTreeNode[];
+    content?: string; // Optional content for files
+}
+
+// Conceptual Task Structure for Agents
+interface AgentTask {
+    id: string;
+    agent: 'Code Assistant' | 'Project Architect';
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    description: string;
+    result?: string; // Output or error message
+    progress?: number; // 0-100
+}
 
 
 export default function Home() {
@@ -92,35 +132,71 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [validationStatus, setValidationStatus] = useState<string>("Idle"); // Idle, Running Pre-Validation, Generating, Running Post-Validation, Failed, Error, Success
   const [validationMessage, setValidationMessage] = useState<string | undefined>(undefined);
+  const [validationSteps, setValidationSteps] = useState<{ name: string; status: 'passed' | 'failed' | 'skipped' }[]>([]);
+  const [validationProgress, setValidationProgress] = useState(0); // Track validation progress
+
 
   // --- State for Conceptual Features ---
-  const [fileExplorerVisible, setFileExplorerVisible] = useState(true); // Example state
-  const [terminalVisible, setTerminalVisible] = useState(false); // Example state
   const [codeAssistantChatVisible, setCodeAssistantChatVisible] = useState(false); // Example state
   const [projectArchitectChatVisible, setProjectArchitectChatVisible] = useState(false); // Example state
   const [activeTab, setActiveTab] = useState<string | null>(null); // Example: Track active file tab
   const [openFiles, setOpenFiles] = useState<string[]>([]); // Example: Track open files
 
-  // Example file tree data (conceptual) - Initialize within useState
-  const [fileTree, setFileTree] = useState([
-      { id: 'src', name: 'src', type: 'folder', children: [
-          { id: 'app', name: 'app', type: 'folder', children: [
-              { id: 'page.tsx', name: 'page.tsx', type: 'file' },
-              { id: 'layout.tsx', name: 'layout.tsx', type: 'file' },
-              { id: 'globals.css', name: 'globals.css', type: 'file' },
+  // Initialize file tree state (Conceptual)
+  const [fileTree, setFileTree] = useState<FileTreeNode[]>([
+      { id: 'src', name: 'src', type: 'folder', path: 'src', children: [
+          { id: 'app', name: 'app', type: 'folder', path: 'src/app', children: [
+              { id: 'page.tsx', name: 'page.tsx', type: 'file', path: 'src/app/page.tsx', content: '// src/app/page.tsx content...' },
+              { id: 'layout.tsx', name: 'layout.tsx', type: 'file', path: 'src/app/layout.tsx', content: '// src/app/layout.tsx content...' },
+              { id: 'globals.css', name: 'globals.css', type: 'file', path: 'src/app/globals.css', content: '/* src/app/globals.css content... */' },
           ]},
-          { id: 'components', name: 'components', type: 'folder', children: [
-              { id: 'ui', name: 'ui', type: 'folder', children: []},
-              { id: 'prompt-input.tsx', name: 'prompt-input.tsx', type: 'file'},
+          { id: 'components', name: 'components', type: 'folder', path: 'src/components', children: [
+              { id: 'ui', name: 'ui', type: 'folder', path: 'src/components/ui', children: []},
+              { id: 'prompt-input.tsx', name: 'prompt-input.tsx', type: 'file', path: 'src/components/prompt-input.tsx', content: '// src/components/prompt-input.tsx content...' },
           ]},
-          { id: 'ai', name: 'ai', type: 'folder', children: []},
-          { id: 'lib', name: 'lib', type: 'folder', children: []},
+          { id: 'ai', name: 'ai', type: 'folder', path: 'src/ai', children: []},
+          { id: 'lib', name: 'lib', type: 'folder', path: 'src/lib', children: []},
       ]},
-      { id: 'public', name: 'public', type: 'folder', children: []},
-      { id: 'package.json', name: 'package.json', type: 'file' },
-      { id: 'README.md', name: 'README.md', type: 'file' },
+      { id: 'public', name: 'public', type: 'folder', path: 'public', children: []},
+      { id: 'package.json', name: 'package.json', type: 'file', path: 'package.json', content: '{ "name": "example" }' },
+      { id: 'README.md', name: 'README.md', type: 'file', path: 'README.md', content: '# Example README' },
   ]);
-   // --- End State for Conceptual Features ---
+  // --- End State for Conceptual Features ---
+
+  // --- State for Agent Tasks (Conceptual) ---
+  const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
+
+  // Function to add a conceptual task
+  const addAgentTask = (agent: 'Code Assistant' | 'Project Architect', description: string) => {
+      const newTask: AgentTask = {
+          id: `task-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          agent,
+          status: 'pending',
+          description,
+          progress: 0,
+      };
+      setAgentTasks(prev => [...prev, newTask]);
+      // Simulate task execution (replace with actual agent calls)
+      simulateTaskExecution(newTask.id);
+  };
+
+   // Simulate task progress and completion/failure
+   const simulateTaskExecution = (taskId: string) => {
+       let progress = 0;
+       setAgentTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'running' } : t));
+
+       const interval = setInterval(() => {
+           progress += Math.random() * 20;
+           if (progress >= 100) {
+               clearInterval(interval);
+               const success = Math.random() > 0.2; // 80% success rate
+               setAgentTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: success ? 'completed' : 'failed', progress: 100, result: success ? 'Task completed successfully (Simulated)' : 'Task failed: Error during processing (Simulated)' } : t));
+           } else {
+               setAgentTasks(prev => prev.map(t => t.id === taskId ? { ...t, progress: Math.min(100, Math.round(progress)) } : t));
+           }
+       }, 500 + Math.random() * 500);
+   };
+  // --- End State for Agent Tasks ---
 
 
   // Fetch local Ollama models and combine with *configured* cloud models based on settings
@@ -134,15 +210,16 @@ export default function Home() {
     let pluginWarnings: string[] = []; // Reset warnings
 
     // Load settings from localStorage
-    let settings: Partial<AppSettings> = {}; // Use AppSettings type from settings-panel
+    let settings: AppSettings = defaultSettings; // Use AppSettings type from settings-panel
     if (typeof window !== 'undefined') {
         try {
             const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
             if (storedSettings) {
-                settings = JSON.parse(storedSettings);
-            } else {
-                settings = defaultSettings; // Use defaults if nothing is stored
+                const parsedSettings = JSON.parse(storedSettings);
+                 // Merge defaults with stored settings to handle missing/new keys gracefully
+                 settings = { ...defaultSettings, ...parsedSettings };
             }
+            // No need for else, settings already initialized with defaults
         } catch (e) {
             console.error("Failed to parse settings from localStorage:", e);
             toast({
@@ -151,21 +228,20 @@ export default function Home() {
                  description: "Could not parse saved settings. Using defaults.",
                  className: "font-mono",
              });
-             settings = defaultSettings; // Fallback to defaults on parse error
+             // Fallback to defaults on parse error (already set)
         }
-    } else {
-        settings = defaultSettings; // Default settings if not in browser env
     }
+    // Else: Use default settings if not in browser env (already set)
 
     // Fetch Ollama models if base URL seems valid
-    const ollamaBaseUrl = settings.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
+    const ollamaBaseUrl = settings.ollamaBaseUrl; // Use loaded setting
     if (ollamaBaseUrl && ollamaBaseUrl.startsWith('http')) {
         try {
             console.log(`Attempting to fetch Ollama models from: ${ollamaBaseUrl}`);
             const fetchedOllamaModels = await listLocalOllamaModels(ollamaBaseUrl);
             localModels = fetchedOllamaModels.map(m => ({
                 id: `ollama/${m.name}`,
-                name: m.name,
+                name: m.name.replace(':latest', ''), // Clean up name
                 provider: 'Ollama',
                 size: m.size,
                 description: `${m.details.family || 'Unknown'} (${(m.size / 1e9).toFixed(2)} GB)`
@@ -180,26 +256,30 @@ export default function Home() {
     }
 
 
-    // Add cloud models based on potential list and settings
+    // Add cloud models based on potential list and settings availability
     if (settings.googleApiKey) {
-        configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Google AI'));
+        configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Google AI' && !m.unavailable));
     }
     if (settings.openRouterApiKey) {
-        // Add OpenRouter models but they remain marked as unavailable
+        // Add OpenRouter models but keep marked as unavailable if plugin is missing
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
-        pluginWarnings.push("OpenRouter integration unavailable (@genkit-ai/openrouter@1.8.0 not found)");
+        if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'OpenRouter' && m.unavailable)) {
+            pluginWarnings.push("OpenRouter integration unavailable (@genkit-ai/openrouter@1.8.0 not found)");
+        }
     }
      if (settings.huggingFaceApiKey) {
-        // Add Hugging Face models but they remain marked as unavailable
+        // Add Hugging Face models but keep marked as unavailable if plugin is missing
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
-        pluginWarnings.push("HuggingFace integration unavailable (@genkit-ai/huggingface@1.8.0 not found)");
+         if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'Hugging Face' && m.unavailable)) {
+            pluginWarnings.push("HuggingFace integration unavailable (@genkit-ai/huggingface@1.8.0 not found)");
+        }
     }
 
 
     // Combine available model sources
     const combined = [
         ...(ollamaError ? [] : localModels), // Only include Ollama if no error
-        ...configuredCloudModels, // Include cloud models *only if* keys are configured
+        ...configuredCloudModels, // Include cloud models based on key presence and plugin status
     ];
     setAllModels(combined);
 
@@ -219,7 +299,7 @@ export default function Home() {
 
     // Handle errors/warnings more granularly
     let errorMessage = "";
-    // Start with plugin warnings if relevant keys are set
+    // Start with plugin warnings if relevant keys are set AND plugins are unavailable
     let warningMessages: string[] = pluginWarnings;
 
     if (ollamaError) {
@@ -232,7 +312,12 @@ export default function Home() {
         }
     } else if (availableModels.length === 0) {
         // No Ollama error, but list is empty OR all models are unavailable
-        errorMessage = "No available AI models found. Check Ollama, configure cloud API keys, or install missing plugins (@genkit-ai/openrouter, @genkit-ai/huggingface).";
+         const missingKeys = [
+             !settings.googleApiKey && "Google AI",
+             !settings.openRouterApiKey && "OpenRouter",
+             !settings.huggingFaceApiKey && "Hugging Face"
+         ].filter(Boolean).join(', ');
+         errorMessage = `No available AI models found. Check Ollama status. For cloud models, configure API keys in Settings (${missingKeys ? `Missing: ${missingKeys}` : ''}) and ensure required plugins are installed.`;
     }
 
     // Display warnings as non-destructive toasts
@@ -284,13 +369,6 @@ export default function Home() {
             setGeneratedCode(storedCode);
              setValidationStatus("Loaded"); // Indicate loaded state
              setValidationMessage("Restored previous generation.");
-             /* Optional: Show a less intrusive notification or none
-             toast({
-                title: "SYS: Previous Code Loaded",
-                description: "Restored last successful generation from buffer.",
-                className: "font-mono text-xs",
-             });
-             */
         } else {
             setGeneratedCode("// Output buffer empty. Awaiting command...");
             setValidationStatus("Idle");
@@ -324,11 +402,15 @@ export default function Home() {
     setGenerationError(null); // Clear previous errors
     setValidationStatus("Running Pre-Validation...");
     setValidationMessage("Checking input parameters...");
+    setValidationProgress(0); // Reset progress
+    setValidationSteps([]); // Clear previous steps
     toast({ title: "STATUS: Pre-Validation", description: "Checking input...", className: "font-mono text-xs" });
 
 
     // Conceptual Pre-generation validation (can be expanded)
-    const preValidationResult = await runValidationPipeline(codeToEdit ?? '', currentPrompt);
+    await new Promise(resolve => setTimeout(resolve, 200)); // Simulate quick check
+    setValidationProgress(50);
+    const preValidationResult = { success: true }; // Simplified pre-check
     if (!preValidationResult.success) {
         const errorMsg = `Pre-generation validation failed: ${preValidationResult.message}`;
         setValidationStatus("Failed");
@@ -343,8 +425,10 @@ export default function Home() {
         setIsLoadingGeneration(false);
         return;
     }
+
     setValidationStatus("Generating...");
     setValidationMessage(`Using model: ${selectedModel?.name || selectedModelId}`);
+    setValidationProgress(100); // Pre-validation complete
     toast({ title: "STATUS: Generating Code", description: `Sending request to ${selectedModelId}...`, className: "font-mono text-xs" });
 
 
@@ -360,56 +444,71 @@ export default function Home() {
       setValidationStatus("Running Post-Validation...");
       setValidationMessage("Checking generated code integrity...");
       toast({ title: "STATUS: Post-Validation", description: "Checking generated code...", className: "font-mono text-xs" });
+      setValidationProgress(0); // Reset for post-validation
 
       // Run post-generation validation pipeline (Conceptual)
-      const postValidationResult = await runValidationPipeline(result.code);
-      if (!postValidationResult.success) {
-          const errorMsg = `Generated code failed validation: ${postValidationResult.message}`;
-          setValidationStatus("Failed");
-          setValidationMessage(postValidationResult.message);
-          // Display the flawed code for inspection/edit but show error
-          setGeneratedCode(result.code);
-          setGenerationError(errorMsg); // Set error state for persistent UI message
-           toast({
-               variant: "destructive",
-               title: "ERR: Post-Validation Failed",
-               description: postValidationResult.message + " Code generated but may contain errors.",
-               className: "font-mono",
-               duration: 10000,
-           });
-          // Do NOT save to previousSuccessfulCode or localStorage if validation fails
-      } else {
-           setValidationStatus("Success");
-           setValidationMessage("Code generated and validated successfully.");
-           setGeneratedCode(result.code);
-           setGenerationError(null); // Clear error on success
+      let currentStep = 0;
+      const totalSteps = 5; // From the conceptual pipeline
+      const interval = setInterval(async () => {
+          currentStep++;
+          setValidationProgress(Math.round((currentStep / totalSteps) * 100));
+          if (currentStep >= totalSteps) {
+              clearInterval(interval);
+              const postValidationResult = await runValidationPipeline(result.code);
+              setValidationSteps(postValidationResult.steps || []); // Update steps state
 
-           // Store successful code ONLY if validation passes
-           setPreviousSuccessfulCode(result.code);
-           if (typeof window !== 'undefined') {
-             try {
-                localStorage.setItem('previousSuccessfulCode', result.code);
-             } catch (e) {
-                console.error("Failed to save code to localStorage:", e);
-                toast({ variant: "destructive", title: "WARN: Local Storage Full?", description: "Could not save generated code.", className: "font-mono" });
-             }
-           }
+              if (!postValidationResult.success) {
+                  const errorMsg = `Generated code failed validation: ${postValidationResult.message}`;
+                  setValidationStatus("Failed");
+                  setValidationMessage(postValidationResult.message);
+                  // Display the flawed code for inspection/edit but show error
+                  setGeneratedCode(result.code);
+                  setGenerationError(errorMsg); // Set error state for persistent UI message
+                  toast({
+                      variant: "destructive",
+                      title: "ERR: Post-Validation Failed",
+                      description: postValidationResult.message + " Code generated but may contain errors.",
+                      className: "font-mono",
+                      duration: 10000,
+                  });
+                  // Do NOT save to previousSuccessfulCode or localStorage if validation fails
+                  setIsLoadingGeneration(false);
+              } else {
+                  setValidationStatus("Success");
+                  setValidationMessage("Code generated and validated successfully.");
+                  setGeneratedCode(result.code);
+                  setGenerationError(null); // Clear error on success
 
-           // const selectedModel = allModels.find(m => m.id === selectedModelId); // Already fetched above
-           toast({
-             title: "STATUS: Generation OK",
-             description: `Code generated with ${selectedModel?.name || selectedModelId}. Validation passed.`,
-             className: "font-mono border-primary text-primary",
-           });
-            // Reset status after a delay on success
-           setTimeout(() => {
-                // Check if status hasn't changed due to another action starting
-                if (validationStatus === "Success") {
-                     setValidationStatus("Idle");
-                     setValidationMessage(undefined);
-                }
-           }, 5000);
-      }
+                  // Store successful code ONLY if validation passes
+                  setPreviousSuccessfulCode(result.code);
+                  if (typeof window !== 'undefined') {
+                    try {
+                        localStorage.setItem('previousSuccessfulCode', result.code);
+                    } catch (e) {
+                        console.error("Failed to save code to localStorage:", e);
+                        toast({ variant: "destructive", title: "WARN: Local Storage Full?", description: "Could not save generated code.", className: "font-mono" });
+                    }
+                  }
+
+                  toast({
+                    title: "STATUS: Generation OK",
+                    description: `Code generated with ${selectedModel?.name || selectedModelId}. Validation passed.`,
+                    className: "font-mono border-primary text-primary",
+                  });
+                  setIsLoadingGeneration(false);
+                   // Reset status after a delay on success
+                  setTimeout(() => {
+                      if (validationStatus === "Success") { // Check if still success
+                          setValidationStatus("Idle");
+                          setValidationMessage(undefined);
+                          setValidationSteps([]);
+                          setValidationProgress(0);
+                      }
+                  }, 5000);
+              }
+          }
+      }, 150); // Simulate step-by-step validation
+
 
     } catch (err) {
       console.error("Code generation failed:", err);
@@ -417,6 +516,8 @@ export default function Home() {
       setGenerationError(errorMessage);
       setValidationStatus("Error"); // Set status to Error
       setValidationMessage(errorMessage.substring(0, 100) + "..."); // Show snippet of error
+      setValidationSteps([]); // Clear steps on error
+      setValidationProgress(0);
       toast({
         variant: "destructive",
         title: "ERR: Generation Failed",
@@ -425,15 +526,17 @@ export default function Home() {
         duration: 15000, // Show error for longer
       });
       // Keep previous code state intact on error
-    } finally {
       setIsLoadingGeneration(false);
-      // Don't reset validation status automatically on fail/error, wait for user action (Retry)
     }
+    // Don't reset validation status automatically on fail/error in the 'finally' block
+    // Handled within try/catch now
   };
 
   // Wrapper for initial generation from main prompt
   const handleInitialGenerate = () => {
       handleGenerate(prompt);
+      // Example: Add task to Project Architect (Conceptual)
+      addAgentTask('Project Architect', `Scaffold project based on prompt: "${prompt.substring(0, 50)}..."`);
   };
 
   // Handler for the edit popup submission
@@ -446,14 +549,15 @@ export default function Home() {
       const combinedEditPrompt = `Edit the following code based on these instructions:\n\nInstructions: ${editPrompt}\n\nCurrent Code to Edit:\n\`\`\`\n${generatedCode}\n\`\`\``;
       handleGenerate(combinedEditPrompt, generatedCode); // Pass combined prompt and current code
       setIsEditPopupOpen(false);
+      // Example: Add task to Code Assistant (Conceptual)
+      addAgentTask('Code Assistant', `Edit code based on instructions: "${editPrompt.substring(0, 50)}..."`);
   };
 
   // Handler for the retry button in the error alert or validation failed state
   const handleRetry = () => {
        if (prompt || previousSuccessfulCode) { // Allow retry even if prompt is empty if there's previous code
-           // Decide if it's a retry of initial generation or an edit
-           // For simplicity, let's assume retry always uses the main prompt input
            handleGenerate(prompt, previousSuccessfulCode); // Retry with current prompt and last good code
+           addAgentTask('Project Architect', `Retry generation for prompt: "${prompt.substring(0, 50)}..."`); // Example task
        } else {
            toast({ variant: "destructive", title: "ERR: Nothing to Retry", description: "Enter a prompt or load previous code.", className: "font-mono" });
        }
@@ -469,7 +573,7 @@ export default function Home() {
           case 'Ollama': return <HardDrive className={cn(baseClasses, "text-secondary")} title="Ollama (Local)" />;
           case 'Google AI': return <BrainCircuit className={cn(baseClasses, "text-primary")} title="Google AI" />;
           case 'OpenRouter': return <CloudCog className={cn(baseClasses, "text-purple-400")} title="OpenRouter" />; // Style assumes available
-          case 'Hugging Face': return <span className="mr-2 text-yellow-400 flex-shrink-0" title="Hugging Face">🤗</span>; // Style assumes available
+          case 'Hugging Face': return <Binary className={cn(baseClasses, "text-yellow-400")} title="Hugging Face" />; // Use Binary icon
           default: return <Box className={cn(baseClasses, "text-muted-foreground")} title="Unknown Provider" />;
       }
   };
@@ -477,7 +581,14 @@ export default function Home() {
   // Group models by provider for the Select component
   const groupedModels = allModels.reduce((acc, model) => {
       const provider = model.provider;
-      (acc[provider] = acc[provider] || []).push(model);
+      // Initialize provider array if it doesn't exist
+      if (!acc[provider]) {
+          acc[provider] = [];
+      }
+      // Ensure no duplicates (based on ID)
+      if (!acc[provider].some(existingModel => existingModel.id === model.id)) {
+           acc[provider].push(model);
+      }
       return acc;
   }, {} as Record<CombinedModel['provider'], CombinedModel[]>);
 
@@ -488,33 +599,122 @@ export default function Home() {
   const isEditDisabled = isLoadingGeneration || !generatedCode || generatedCode === "// Output buffer empty. Awaiting command..." || !!generationError || validationStatus === "Failed";
 
 
-  // Helper function to render file tree (recursive) - conceptual
-  const renderFileTree = (nodes: any[]) => {
+  // Helper function to recursively render file tree with interactive elements
+  const renderFileTree = (nodes: FileTreeNode[], level = 0): React.ReactNode => {
       return nodes.map(node => (
-          <SidebarMenuItem key={node.id}>
-              <SidebarMenuButton
-                  size="sm"
-                  className="w-full justify-start"
-                  tooltip={node.name} // Show full name on hover if collapsed
-                  onClick={() => {
-                      if (node.type === 'file') {
-                          setActiveTab(node.id);
-                          if (!openFiles.includes(node.id)) {
-                              setOpenFiles([...openFiles, node.id]);
-                          }
-                          console.log("Open file:", node.name); // Conceptual action
-                      }
-                  }}
-              >
-                  {node.type === 'folder' ? <Folder className="text-accent" /> : <File className="text-secondary"/>}
-                  <span className="truncate">{node.name}</span>
-              </SidebarMenuButton>
-              {node.children && node.children.length > 0 && (
-                  <SidebarMenuSub>
-                      {renderFileTree(node.children)}
-                  </SidebarMenuSub>
+          <AccordionItem value={node.id} key={node.id} className="border-none">
+              <div className={`flex items-center group ml-${level * 2}`}> {/* Indentation */}
+                  {node.type === 'folder' && node.children && node.children.length > 0 ? (
+                       <AccordionTrigger className="flex-grow p-0 hover:no-underline">
+                           <SidebarMenuButton
+                               size="sm"
+                               className="w-full justify-start hover:bg-transparent data-[state=open]:bg-accent/10"
+                               tooltip={node.path}
+                               asChild
+                           >
+                             <div> {/* Wrap content for proper layout */}
+                               <Folder className="text-accent group-data-[state=open]:text-accent/80 mr-1.5" />
+                               <span className="truncate">{node.name}</span>
+                             </div>
+                           </SidebarMenuButton>
+                       </AccordionTrigger>
+                  ) : (
+                      <SidebarMenuButton
+                          size="sm"
+                          className="w-full justify-start flex-grow"
+                          tooltip={node.path}
+                          isActive={activeTab === node.id}
+                          onClick={() => {
+                              if (node.type === 'file') {
+                                  setActiveTab(node.id);
+                                  if (!openFiles.includes(node.id)) {
+                                      setOpenFiles(prev => [...prev, node.id]);
+                                  }
+                                  // Load file content into the editor (conceptual)
+                                  setGeneratedCode(node.content || `// Content for ${node.path}`);
+                                  setValidationStatus("Loaded");
+                                  setValidationMessage(`Loaded file: ${node.name}`);
+                                  console.log("Open file:", node.path);
+                              }
+                          }}
+                      >
+                          <File className="text-secondary mr-1.5"/>
+                          <span className="truncate">{node.name}</span>
+                      </SidebarMenuButton>
+                  )}
+                   {/* Add File/Folder Actions (Conceptual) */}
+                   <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto mr-1 flex gap-0.5">
+                       <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-none" onClick={() => console.log('Add File to:', node.path)}>
+                                    <ListPlus className="h-3 w-3"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="font-mono text-xs">Add File</TooltipContent>
+                       </Tooltip>
+                        {node.type === 'folder' && (
+                           <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-none" onClick={() => console.log('Add Folder to:', node.path)}>
+                                        <Folder className="h-3 w-3"/>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="font-mono text-xs">Add Folder</TooltipContent>
+                           </Tooltip>
+                        )}
+                   </div>
+              </div>
+              {node.type === 'folder' && node.children && node.children.length > 0 && (
+                  <AccordionContent className="p-0 overflow-hidden">
+                       {renderFileTree(node.children, level + 1)}
+                  </AccordionContent>
               )}
-          </SidebarMenuItem>
+          </AccordionItem>
+      ));
+  };
+
+  // Find content of the active file tab
+  const findFileContent = (nodes: FileTreeNode[], targetId: string | null): string | undefined => {
+      if (!targetId) return undefined;
+      for (const node of nodes) {
+          if (node.type === 'file' && node.id === targetId) {
+              return node.content;
+          }
+          if (node.type === 'folder' && node.children) {
+              const found = findFileContent(node.children, targetId);
+              if (found !== undefined) return found;
+          }
+      }
+      return undefined;
+  };
+  const activeFileContent = activeTab ? findFileContent(fileTree, activeTab) : generatedCode;
+
+
+  // Render Agent Tasks
+  const renderAgentTasks = () => {
+      if (agentTasks.length === 0) {
+          return <p className="text-xs text-muted-foreground italic px-2">// No active agent tasks.</p>;
+      }
+      return agentTasks.map(task => (
+          <div key={task.id} className="p-2 border-b border-border/20 text-xs font-mono">
+               <div className="flex justify-between items-center mb-1">
+                   <span className="font-medium text-secondary flex items-center">
+                       {task.agent === 'Code Assistant' ? <Bot className="h-3 w-3 mr-1"/> : <Construction className="h-3 w-3 mr-1"/>}
+                       {task.agent}
+                   </span>
+                   <Badge
+                       variant={task.status === 'completed' ? 'default' : task.status === 'failed' ? 'destructive' : 'secondary'}
+                       className={`text-[10px] px-1.5 py-0 rounded-none capitalize ${task.status === 'running' ? 'animate-pulse' : ''} ${task.status === 'completed' ? 'bg-primary/20 border-primary/50 text-primary' : ''}`}
+                   >
+                       {task.status}
+                   </Badge>
+               </div>
+               <p className="text-muted-foreground truncate mb-1" title={task.description}>{task.description}</p>
+               {task.status === 'running' && task.progress !== undefined && (
+                   <Progress value={task.progress} className="h-1 w-full bg-muted/30" indicatorClassName="bg-secondary"/>
+               )}
+               {task.result && <p className={`mt-1 text-[10px] ${task.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}`}>{task.result}</p>}
+          </div>
       ));
   };
 
@@ -529,7 +729,7 @@ export default function Home() {
                <Terminal className="h-6 w-6 text-primary hidden sm:block"/>
               <div>
                  <h1 className="text-lg md:text-xl font-bold text-primary font-mono chromatic-aberration-light" data-text="CodeSynth_IDE">CodeSynth_IDE</h1>
-                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// AI Code Environment v0.4</p> {/* Version Bump */}
+                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// Multi-Agent Development Environment v0.5</p> {/* Version Bump */}
              </div>
           </div>
            <div className="flex items-center space-x-3">
@@ -550,7 +750,7 @@ export default function Home() {
              <Tooltip>
                  <TooltipTrigger asChild>
                       <div className={`w-3 h-3 rounded-full border border-foreground/30 relative flex items-center justify-center transition-colors duration-300 ${isLoadingGeneration || isLoadingModels ? 'bg-yellow-500 animate-pulse' : (generationError || validationStatus === "Failed" || validationStatus === "Error" ? 'bg-destructive' : 'bg-green-500')}`}>
-                          {(isLoadingGeneration || isLoadingModels) && <div className="absolute w-4 h-4 bg-yellow-500/30 rounded-full animate-ping"></div>}
+                          {(isLoadingGeneration || isLoadingModels || validationStatus.startsWith('Running')) && <div className="absolute w-4 h-4 bg-current/30 rounded-full animate-ping"></div>}
                       </div>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="font-mono text-xs bg-popover text-popover-foreground border-border rounded-none max-w-[250px] text-center">
@@ -561,7 +761,7 @@ export default function Home() {
                            validationStatus === "Failed" ? `Validation Failed: ${validationMessage || ''}` :
                            validationStatus === "Error" ? `Generation Error: ${validationMessage || ''}` :
                            validationStatus === "Success" ? 'Generation OK' :
-                           validationStatus === "Loaded" ? 'Previous Code Loaded' :
+                           validationStatus === "Loaded" ? 'File/Buffer Loaded' :
                            validationStatus.startsWith("Running") ? validationStatus :
                            'System Idle / Ready'}
                        </p>
@@ -572,52 +772,72 @@ export default function Home() {
 
        {/* Main Content Area with Sidebar */}
         <div className="flex-grow flex overflow-hidden">
-            <Sidebar side="left" collapsible="icon">
+            <Sidebar side="left" collapsible="icon" className="border-r-2 border-border"> {/* Added border */}
                 <SidebarHeader>
-                    <h2 className="font-mono text-sm text-secondary">// Workspace</h2>
-                    {/* Add search or other header items if needed */}
-                    {/* <SidebarInput placeholder="Search files..."/> */}
+                     {/* Sidebar Toggle Button for Desktop */}
+                     <div className="flex items-center justify-between">
+                        <h2 className="font-mono text-sm text-secondary group-data-[collapsible=icon]:hidden transition-opacity duration-200 ease-linear">// Workspace</h2>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent/10 rounded-none hidden md:inline-flex" onClick={() => document.cookie = `${SETTINGS_STORAGE_KEY}=${JSON.stringify({...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}')})}; path=/; max-age=0` /* Conceptual: Needs proper toggle logic via useSidebar */}>
+                                    <LayoutPanelLeft className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="font-mono text-xs">Collapse Sidebar</TooltipContent>
+                         </Tooltip>
+                     </div>
+                    <SidebarInput placeholder="Search files..." className="group-data-[collapsible=icon]:hidden transition-opacity duration-200 ease-linear"/>
                 </SidebarHeader>
                 <SidebarContent className="p-0">
-                    <SidebarGroup>
-                       <SidebarGroupLabel className="text-xs">// File_Explorer</SidebarGroupLabel>
-                       <SidebarGroupContent>
-                            <SidebarMenu>
-                               {renderFileTree(fileTree)}
-                            </SidebarMenu>
-                       </SidebarGroupContent>
-                    </SidebarGroup>
-                    <SidebarSeparator />
-                     <SidebarGroup>
-                        <SidebarGroupLabel className="text-xs">// AI_Agents</SidebarGroupLabel>
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton tooltip="Code Assistant" onClick={() => setCodeAssistantChatVisible(true)}>
-                                        <Bot />
-                                        <span>Code Assistant</span>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton tooltip="Project Architect" onClick={() => setProjectArchitectChatVisible(true)}>
-                                        <Construction />
-                                         <span>Project Architect</span>
-                                     </SidebarMenuButton>
-                                 </SidebarMenuItem>
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                    {/* Add more sidebar sections: Git, Deployments, etc. */}
+                    <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="file-explorer">
+                             <AccordionTrigger className="px-2 py-1 hover:no-underline hover:bg-accent/5 text-xs font-mono text-muted-foreground">
+                                 // File_Explorer
+                             </AccordionTrigger>
+                             <AccordionContent className="pb-0">
+                                {renderFileTree(fileTree)}
+                             </AccordionContent>
+                        </AccordionItem>
+
+                         <AccordionItem value="ai-agents">
+                             <AccordionTrigger className="px-2 py-1 hover:no-underline hover:bg-accent/5 text-xs font-mono text-muted-foreground">
+                                // AI_Agents ({agentTasks.filter(t => t.status === 'running').length} Running)
+                             </AccordionTrigger>
+                             <AccordionContent className="pb-0 space-y-1 max-h-[300px] overflow-y-auto">
+                                 {/* Conceptual Agent Toggles */}
+                                 <div className="flex gap-1 px-2 py-1 group-data-[collapsible=icon]:hidden">
+                                     <Button size="sm" variant="ghost" className="flex-1 text-xs justify-start p-1 h-auto font-mono hover:bg-accent/10" onClick={() => setCodeAssistantChatVisible(prev => !prev)}><Bot className="mr-1 h-3 w-3"/>Code Asst.</Button>
+                                     <Button size="sm" variant="ghost" className="flex-1 text-xs justify-start p-1 h-auto font-mono hover:bg-accent/10" onClick={() => setProjectArchitectChatVisible(prev => !prev)}><Construction className="mr-1 h-3 w-3"/>Architect</Button>
+                                 </div>
+                                 {renderAgentTasks()}
+                             </AccordionContent>
+                         </AccordionItem>
+
+                         <AccordionItem value="integrations">
+                             <AccordionTrigger className="px-2 py-1 hover:no-underline hover:bg-accent/5 text-xs font-mono text-muted-foreground">
+                                // System_Integrations
+                             </AccordionTrigger>
+                             <AccordionContent className="pb-0 px-2 space-y-1 group-data-[collapsible=icon]:hidden">
+                                <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><ShieldCheck className="h-3 w-3"/> Security Scan: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
+                                <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><TestTubeDiagonal className="h-3 w-3"/> MLOps Monitor: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
+                                <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><GitBranch className="h-3 w-3"/> Git Sync: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
+                                <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><CloudCog className="h-3 w-3"/> Deployments: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
+                                <p className="text-xs text-destructive/80 font-mono mt-1 italic">// (Integrations Not Implemented)</p>
+                             </AccordionContent>
+                         </AccordionItem>
+                    </Accordion>
+
                 </SidebarContent>
-                 <SidebarFooter className="mt-auto">
-                     {/* Footer actions like Collapse/Expand */}
+                 <SidebarFooter className="mt-auto p-2 border-t-2 border-border group-data-[collapsible=icon]:hidden transition-opacity duration-200 ease-linear">
+                     {/* Footer actions like User profile, help, etc. */}
+                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs font-mono"><UserCheck className="mr-1 h-3 w-3"/> User Profile (N/A)</Button>
                  </SidebarFooter>
             </Sidebar>
 
              {/* Main Editing and Control Area */}
-            <SidebarInset>
+            <SidebarInset> {/* This component handles the main content area spacing */}
                 <main className="flex-grow flex flex-col lg:flex-row overflow-hidden gap-1 md:gap-2 p-2">
-                 {/* Left Column: Controls */}
+                 {/* Left Column: Controls & Validation Status */}
                  <div className="w-full lg:w-1/3 flex flex-col gap-2 md:gap-3 border border-border p-2 md:p-3 rounded-sm shadow-[inset_0_0_5px_hsla(var(--border)/0.2)] overflow-y-auto min-h-[300px] lg:min-h-0">
                     {/* Model Selector */}
                     <div className="space-y-1">
@@ -659,7 +879,7 @@ export default function Home() {
                                        <SelectGroup key={provider}>
                                            <SelectLabel className="text-xs text-muted-foreground flex items-center pl-2 pr-2 py-1 font-mono">
                                                {/* Check first model in group for unavailable flag */}
-                                               {getProviderIcon(provider as CombinedModel['provider'], groupedModels[provider][0]?.unavailable)}
+                                               {getProviderIcon(provider as CombinedModel['provider'], groupedModels[provider]?.some(m => m.unavailable))}
                                                // {provider}_Models //
                                            </SelectLabel>
                                            {groupedModels[provider].map((model) => (
@@ -679,9 +899,12 @@ export default function Home() {
                                                              {(model.size / 1e9).toFixed(2)} GB
                                                          </Badge>
                                                        )}
+                                                        {model.unavailable && (
+                                                            <Badge variant="destructive" className="ml-2 text-[9px] px-1 py-0 rounded-none flex-shrink-0">Unavailable</Badge>
+                                                        )}
                                                    </div>
                                                    {model.description && (
-                                                     <p className={cn("text-xs mt-0.5 font-mono truncate w-full", model.unavailable ? "text-destructive" : "text-muted-foreground")}>
+                                                     <p className={cn("text-xs mt-0.5 font-mono truncate w-full", model.unavailable ? "text-destructive/80" : "text-muted-foreground")}>
                                                         {model.description}
                                                      </p>
                                                     )}
@@ -715,46 +938,69 @@ export default function Home() {
                        placeholderText="// Input prompt: Describe the application, component, or function to generate or modify...\n// Example: Create a React Button component with hover effects..."
                      />
                     </div>
-                     {generationError && !isLoadingGeneration && (
-                         <Alert variant="destructive" className="mt-1 bg-destructive/10 border-destructive/50 text-destructive font-mono rounded-none py-1 px-2">
-                           <Terminal className="h-4 w-4" />
-                           <AlertTitle className="text-sm">! Execution Error !</AlertTitle>
-                           <AlertDescription className="text-xs flex justify-between items-center gap-2">
-                               <span>{generationError}</span>
-                               <Button variant="ghost" size="sm" onClick={handleRetry} className="text-xs underline p-0 h-auto hover:bg-destructive/20 flex-shrink-0">
-                                   (Retry_Cmd)
-                               </Button>
-                           </AlertDescription>
-                         </Alert>
-                     )}
-                      {/* Validation Pipeline status */}
-                      <div className="text-xs text-muted-foreground font-mono mt-1 border-t border-border/30 pt-1 flex items-center gap-2 flex-wrap">
-                         <span className="mr-1 shrink-0 flex items-center">
-                             <Workflow className="h-3 w-3 mr-1"/> // Validation_Status:
-                         </span>
-                         <Badge
-                             variant={
-                                 validationStatus === "Failed" || validationStatus === "Error" ? "destructive" :
-                                 validationStatus.startsWith("Running") || validationStatus.includes("Generating") ? "secondary" :
-                                 validationStatus === "Success" ? "default" : // Use default (primary) for success
-                                 validationStatus === "Loaded" ? "outline" : // Use outline for Loaded
-                                 "outline" // Idle
-                             }
-                             className={`text-[10px] px-1.5 py-0 rounded-none font-mono transition-all duration-300 ${
-                                  validationStatus === "Success" ? 'bg-primary/20 border-primary/50 text-primary' :
-                                  validationStatus.startsWith("Running") || validationStatus.includes("Generating") ? 'animate-pulse bg-secondary/20 border-secondary/50 text-secondary' :
-                                  validationStatus === "Failed" || validationStatus === "Error" ? 'bg-destructive/10 border-destructive/50 text-destructive' :
-                                  'bg-transparent border-muted/50' // Idle & Loaded state
-                             }`}
-                             >
-                              {validationStatus}
-                          </Badge>
-                           {validationMessage && <span className="text-muted-foreground text-[10px] truncate max-w-[200px]">{validationMessage}</span>}
-                           {(validationStatus === "Failed" || validationStatus === "Error") && (
-                              <Button variant="link" size="sm" onClick={handleRetry} className="text-xs underline p-0 h-auto text-accent hover:text-accent/80">
-                                (Retry)
-                              </Button>
-                           )}
+
+                     {/* Validation Pipeline status & Error */}
+                      <div className="text-xs text-muted-foreground font-mono mt-1 border-t border-border/30 pt-2 flex flex-col gap-2">
+                         <div className="flex items-center gap-2 flex-wrap">
+                             <span className="mr-1 shrink-0 flex items-center">
+                                <Activity className="h-3 w-3 mr-1"/> // Pipeline_Status:
+                             </span>
+                             <Badge
+                                 variant={
+                                     validationStatus === "Failed" || validationStatus === "Error" ? "destructive" :
+                                     validationStatus.startsWith("Running") || validationStatus.includes("Generating") ? "secondary" :
+                                     validationStatus === "Success" ? "default" :
+                                     validationStatus === "Loaded" ? "outline" :
+                                     "outline" // Idle
+                                 }
+                                 className={`text-[10px] px-1.5 py-0 rounded-none font-mono transition-all duration-300 ${
+                                      validationStatus === "Success" ? 'bg-primary/20 border-primary/50 text-primary' :
+                                      validationStatus.startsWith("Running") || validationStatus.includes("Generating") ? 'animate-pulse bg-secondary/20 border-secondary/50 text-secondary' :
+                                      validationStatus === "Failed" || validationStatus === "Error" ? 'bg-destructive/10 border-destructive/50 text-destructive' :
+                                      'bg-transparent border-muted/50' // Idle & Loaded state
+                                 }`}
+                                 >
+                                  {validationStatus}
+                              </Badge>
+                               {validationMessage && <span className="text-muted-foreground text-[10px] truncate max-w-[200px]">{validationMessage}</span>}
+                               {(validationStatus === "Failed" || validationStatus === "Error") && (
+                                  <Button variant="link" size="sm" onClick={handleRetry} className="text-xs underline p-0 h-auto text-accent hover:text-accent/80">
+                                    (Retry)
+                                  </Button>
+                               )}
+                         </div>
+                          {/* Progress Bar for Validation */}
+                          {(validationStatus.startsWith("Running") || validationStatus.includes("Generating")) && (
+                              <Progress value={validationProgress} className="h-1 w-full bg-muted/30" indicatorClassName="bg-secondary" />
+                          )}
+                          {/* Display Validation Steps */}
+                          {validationSteps.length > 0 && (
+                              <div className="text-[10px] space-y-0.5 mt-1 border border-dashed border-border/30 p-1.5 rounded-sm">
+                                  {validationSteps.map((step, index) => (
+                                      <div key={index} className={`flex items-center gap-1 ${
+                                          step.status === 'failed' ? 'text-destructive' :
+                                          step.status === 'skipped' ? 'text-muted-foreground/70 italic' :
+                                          'text-primary/90' // Passed
+                                      }`}>
+                                          {step.status === 'passed' ? <Check className="h-2.5 w-2.5"/> : step.status === 'failed' ? <X className="h-2.5 w-2.5"/> : <span className="w-2.5 h-2.5 text-center">-</span>}
+                                          <span>{step.name}: {step.status}</span>
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
+                         {/* Generation Error Display */}
+                         {generationError && !isLoadingGeneration && (
+                             <Alert variant="destructive" className="mt-1 bg-destructive/10 border-destructive/50 text-destructive font-mono rounded-none py-1 px-2">
+                               <Terminal className="h-4 w-4" />
+                               <AlertTitle className="text-sm">! Execution Error !</AlertTitle>
+                               <AlertDescription className="text-xs flex justify-between items-center gap-2">
+                                   <span className="overflow-hidden text-ellipsis">{generationError}</span>
+                                   <Button variant="ghost" size="sm" onClick={handleRetry} className="text-xs underline p-0 h-auto hover:bg-destructive/20 flex-shrink-0">
+                                       (Retry_Cmd)
+                                   </Button>
+                               </AlertDescription>
+                             </Alert>
+                         )}
                       </div>
                  </div>
 
@@ -764,27 +1010,75 @@ export default function Home() {
 
                  {/* Right Column: Code Output & Actions */}
                  <div className="w-full lg:w-2/3 flex-grow flex flex-col overflow-hidden border border-border rounded-sm shadow-[inset_0_0_5px_hsla(var(--border)/0.2)] min-h-[300px] lg:min-h-0">
+                   {/* Conceptual Tabs for Open Files */}
+                   <div className="flex border-b border-border flex-shrink-0">
+                       {openFiles.map(fileId => {
+                            const file = fileTree.flatMap(f => f.children ? [f, ...f.children] : [f]).find(f => f.id === fileId); // Basic find
+                            const fileName = file?.name || fileId;
+                            return (
+                                <Button
+                                    key={fileId}
+                                    variant={activeTab === fileId ? "secondary" : "ghost"}
+                                    size="sm"
+                                    className={`h-7 px-2 py-0 text-xs font-mono rounded-none border-r border-border ${activeTab === fileId ? 'bg-secondary/80 text-secondary-foreground' : 'text-muted-foreground'}`}
+                                    onClick={() => {
+                                        setActiveTab(fileId);
+                                        const content = file?.content || `// Content for ${fileName}`;
+                                        setGeneratedCode(content);
+                                        setValidationStatus("Loaded");
+                                        setValidationMessage(`Switched to tab: ${fileName}`);
+                                     }}
+                                >
+                                    {fileName}
+                                    <X className="h-3 w-3 ml-1.5 opacity-50 hover:opacity-100" onClick={(e) => {
+                                        e.stopPropagation(); // Prevent activating tab
+                                        setOpenFiles(prev => prev.filter(id => id !== fileId));
+                                        if (activeTab === fileId) {
+                                            // If closing active tab, switch to another or clear editor
+                                            const nextTab = openFiles.filter(id => id !== fileId)[0];
+                                            setActiveTab(nextTab || null);
+                                            const nextFile = nextTab ? fileTree.flatMap(f => f.children ? [f, ...f.children] : [f]).find(f => f.id === nextTab) : null;
+                                            setGeneratedCode(nextFile?.content || (nextTab ? `// Content for ${nextFile?.name}` : "// Output buffer empty..."));
+                                        }
+                                    }}/>
+                                </Button>
+                            );
+                       })}
+                       {/* Add a default tab if needed, or show placeholder */}
+                       {openFiles.length === 0 && (
+                            <div className="px-2 py-1 text-xs italic text-muted-foreground">// No files open</div>
+                       )}
+                   </div>
+
                    <CodeDisplay
-                      code={generatedCode}
-                      title="// Generated_Output_Buffer //"
-                      language="typescript" // Default, could be dynamic based on prompt/output
-                      isLoading={isLoadingGeneration}
+                      code={activeFileContent || "// Select a file or generate code..."} // Display active file content or generated code
+                      title={`// ${activeTab ? fileTree.find(f => f.id === activeTab)?.path || 'Generated_Output_Buffer' : 'Generated_Output_Buffer'} //`}
+                      language="typescript" // Default, could be dynamic based on file extension
+                      isLoading={isLoadingGeneration && !activeTab} // Only show loading overlay if generating, not just switching tabs
                       containerClassName="flex-grow" // Make code display fill space
                    />
                    {/* Action Buttons */}
                    <div className="p-2 border-t border-border flex justify-end items-center gap-2 flex-shrink-0">
-                       {/* File Ops Placeholder */}
+                       {/* Placeholder for future actions like Deploy, Commit, etc. */}
                        <Tooltip>
                            <TooltipTrigger asChild>
-                               <span tabIndex={0}> {/* Span for tooltip when button disabled */}
+                               <span tabIndex={0}>
                                    <Button variant="ghost" size="sm" className="text-xs font-mono text-muted-foreground hover:text-foreground rounded-none" disabled>
-                                       <FolderTree className="h-3 w-3 mr-1"/> Manage Files...
+                                       <GitBranch className="h-3 w-3 mr-1"/> Commit (N/A)
                                    </Button>
                                </span>
                            </TooltipTrigger>
-                           <TooltipContent side="top" className="font-mono text-xs bg-popover text-popover-foreground border-border rounded-none">
-                               <p>File Explorer / Multi-File Ops (Not Implemented)</p>
-                           </TooltipContent>
+                           <TooltipContent side="top" className="font-mono text-xs">(Git Integration Not Implemented)</TooltipContent>
+                       </Tooltip>
+                       <Tooltip>
+                           <TooltipTrigger asChild>
+                               <span tabIndex={0}>
+                                   <Button variant="ghost" size="sm" className="text-xs font-mono text-muted-foreground hover:text-foreground rounded-none" disabled>
+                                       <CloudCog className="h-3 w-3 mr-1"/> Deploy (N/A)
+                                   </Button>
+                               </span>
+                           </TooltipTrigger>
+                           <TooltipContent side="top" className="font-mono text-xs">(Deployment Not Implemented)</TooltipContent>
                        </Tooltip>
                        {/* Edit Button */}
                       <Tooltip>
@@ -808,39 +1102,11 @@ export default function Home() {
                       </Tooltip>
                     </div>
                  </div>
-
-                 {/* --- Conceptual Panels (Right Sidebar - Placeholders - Kept hidden for now) --- */}
-                 {/*
-                 <Separator orientation="vertical" className="hidden lg:block h-auto bg-border/30 mx-1" />
-                 <div className="hidden xl:flex xl:w-1/5 flex-col border border-border p-2 rounded-sm bg-card/50 overflow-hidden space-y-3">
-                     <div className="flex flex-col flex-1 overflow-hidden">
-                         <h3 className="text-sm font-mono text-secondary mb-1 flex items-center shrink-0"><Bot className="h-4 w-4 mr-1"/> AI_Agents</h3>
-                         <div className="flex-grow overflow-auto text-xs text-muted-foreground font-mono space-y-1 p-1 bg-black/20 rounded-sm border border-border/20">
-                             <p>// Code Assistant: <span className="text-green-400/80">[Ready]</span></p>
-                             <p>// Project Architect: <span className="text-yellow-400/80">[Idle]</span></p>
-                             <p className="text-yellow-500/70 block mt-2">// (Agent Chat & Task Assignment Not Implemented)</p>
-                         </div>
-                     </div>
-                      <div className="flex flex-col flex-1 overflow-hidden">
-                         <h3 className="text-sm font-mono text-secondary mb-1 pt-1 border-t border-border/30 flex items-center shrink-0"><Info className="h-4 w-4 mr-1"/> System_Integrations</h3>
-                         <div className="flex-grow overflow-auto text-xs text-muted-foreground font-mono space-y-0.5 p-1 bg-black/20 rounded-sm border border-border/20">
-                             <p>// <ShieldCheck className="inline h-3 w-3 mr-1"/> Security Scan: <span className="text-yellow-500/70">[Offline]</span></p>
-                             <p>// <TestTubeDiagonal className="inline h-3 w-3 mr-1"/> MLOps Monitor: <span className="text-yellow-500/70">[Offline]</span></p>
-                             <p>// <Users className="inline h-3 w-3 mr-1"/> Collaboration: <span className="text-yellow-500/70">[Offline]</span></p>
-                              <p>// <GitBranch className="inline h-3 w-3 mr-1"/> Git Sync: <span className="text-yellow-500/70">[Offline]</span></p>
-                              <p>// <CloudCog className="inline h-3 w-3 mr-1"/> Deployments: <span className="text-yellow-500/70">[Offline]</span></p>
-                             <p className="text-yellow-500/70 block mt-2">// (Integrations Not Implemented)</p>
-                         </div>
-                      </div>
-                 </div>
-                 */}
-                 {/* --- End Conceptual Panels --- */}
-
                 </main>
 
                  {/* Footer */}
                  <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-                 [ CodeSynth IDE v0.4 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
+                 [ CodeSynth IDE v0.5 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                </footer>
              </SidebarInset>
         </div>
