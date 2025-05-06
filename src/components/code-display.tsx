@@ -4,27 +4,41 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Using a more retro/dark theme like 'okaidia' or 'tomorrow' might fit better
-// import { okaidia } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'; // A good dark theme
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Using Tomorrow Night theme
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 interface CodeDisplayProps {
   code: string;
   title?: string;
   language?: string; // Add language prop
+  isLoading?: boolean; // Add loading state prop
 }
 
-export function CodeDisplay({ code, title = "Generated Code", language = "typescript" }: CodeDisplayProps) {
+export function CodeDisplay({
+    code,
+    title = "Generated Code",
+    language = "typescript",
+    isLoading = false
+}: CodeDisplayProps) {
   const { toast } = useToast();
   const [hasCopied, setHasCopied] = useState(false);
+  const [displayCode, setDisplayCode] = useState<string | null>(null);
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  // Defer setting displayCode and currentYear until client-side mount
+  useEffect(() => {
+    setDisplayCode(code || "// Enter a prompt and click 'Generate Code'...");
+    setCurrentYear(new Date().getFullYear());
+  }, [code]);
+
 
   const handleCopy = () => {
-    if (!code) return; // Don't copy if there's no code
-    navigator.clipboard.writeText(code).then(() => {
+    if (!displayCode || isLoading) return; // Don't copy if no code or loading
+    navigator.clipboard.writeText(displayCode).then(() => {
       setHasCopied(true);
       toast({
         title: "Copied to clipboard!",
@@ -56,42 +70,80 @@ export function CodeDisplay({ code, title = "Generated Code", language = "typesc
     <Card className="h-full flex flex-col bg-card border-border shadow-inner overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between pb-2 px-4 pt-3 border-b border-border">
         <CardTitle className="text-lg font-semibold font-mono text-primary">{title}</CardTitle>
-        <Button variant="ghost" size="icon" onClick={handleCopy} aria-label="Copy code" disabled={!code} className="text-accent hover:bg-accent/10 disabled:opacity-50">
-          {hasCopied ? (
-            <Check className="h-4 w-4 text-green-500" /> // Keep check green for feedback
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleCopy}
+          aria-label="Copy code"
+          disabled={!displayCode || isLoading || hasCopied} // Disable while loading or if already copied
+          className="text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : hasCopied ? (
+            <Check className="h-4 w-4 text-green-500" />
           ) : (
-            <Copy className="h-4 w-4" /> // Icon color will be inherited from text-accent
+            <Copy className="h-4 w-4" />
           )}
         </Button>
       </CardHeader>
-      <CardContent className="flex-grow p-0 overflow-hidden">
+      <CardContent className="flex-grow p-0 overflow-hidden relative">
+        {/* Overlay for Loading State */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+             <p className="text-muted-foreground font-mono text-center">Generating code, please wait...</p>
+             <Skeleton className="h-4 w-3/4 mt-4" />
+             <Skeleton className="h-4 w-1/2 mt-2" />
+             <Skeleton className="h-4 w-2/3 mt-2" />
+          </div>
+        )}
         {/* ScrollArea uses theme colors */}
         <ScrollArea className="h-full">
-          <SyntaxHighlighter
-            language={language} // Use the language prop
-            style={tomorrow} // Use a suitable theme
-            customStyle={{
-                margin: 0,
-                // Match the card background for seamless look
-                // Using CSS variables ensures theme consistency
-                backgroundColor: 'hsl(var(--card))',
-                height: '100%',
-                overflow: 'auto',
-                fontSize: '0.875rem', // Slightly larger for readability
-                padding: '1rem', // Add padding inside the scroll area
-            }}
-            codeTagProps={{ style: { fontFamily: 'var(--font-cutive-mono), monospace' } }} // Use CSS var for font
-            wrapLongLines={true}
-            showLineNumbers={true} // Show line numbers like an IDE
-            lineNumberStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', marginRight: '1rem' }} // Style line numbers
-          >
-            {code || "// Enter a prompt and click 'Generate Code'..."}
-          </SyntaxHighlighter>
+          {displayCode !== null ? (
+             <SyntaxHighlighter
+                language={language}
+                style={tomorrow} // Use Tomorrow Night theme
+                customStyle={{
+                    margin: 0,
+                    backgroundColor: 'hsl(var(--card))', // Match card background
+                    color: 'hsl(var(--foreground))', // Ensure text color matches foreground
+                    height: '100%',
+                    overflow: 'auto',
+                    fontSize: '0.875rem',
+                    padding: '1rem', // Add padding inside the scroll area
+                    fontFamily: 'var(--font-cutive-mono), monospace', // Consistent font
+                }}
+                 codeTagProps={{ style: { fontFamily: 'var(--font-cutive-mono), monospace' } }}
+                 wrapLongLines={true}
+                 showLineNumbers={true}
+                 lineNumberStyle={{ color: 'hsl(var(--muted-foreground))', fontSize: '0.75rem', marginRight: '1rem' }}
+              >
+                {displayCode}
+              </SyntaxHighlighter>
+          ) : (
+             // Render placeholder or skeleton during initial SSR/hydration before code is ready
+             <div className="p-4">
+               <Skeleton className="h-4 w-3/4 mb-2" />
+               <Skeleton className="h-4 w-1/2 mb-2" />
+               <Skeleton className="h-4 w-2/3" />
+             </div>
+          )}
+
         </ScrollArea>
       </CardContent>
-      <CardFooter className="text-xs text-muted-foreground pt-2 px-4 pb-2 border-t border-border font-mono">
-        {code ? `Model: ${language} | Lines: ${code.split('\n').length} | Chars: ${code.length}` : "Awaiting prompt..."}
-      </CardFooter>
+       <CardFooter className="text-xs text-muted-foreground pt-2 px-4 pb-2 border-t border-border font-mono min-h-[30px]">
+         {isLoading ? (
+             <div className="flex items-center w-full">
+               <Loader2 className="h-3 w-3 animate-spin mr-2" /> Generating...
+             </div>
+           ) : displayCode && displayCode !== "// Enter a prompt and click 'Generate Code'..." ? (
+               `Language: ${language} | Lines: ${displayCode.split('\n').length} | Characters: ${displayCode.length}`
+           ) : (
+               "Awaiting prompt..."
+           )
+         }
+       </CardFooter>
     </Card>
   );
 }

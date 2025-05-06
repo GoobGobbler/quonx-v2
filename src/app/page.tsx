@@ -7,8 +7,8 @@ import { CodeDisplay } from "@/components/code-display";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, ChevronDown } from "lucide-react";
-import { listOllamaModels, type OllamaModel } from "@/ai/services/ollama"; // Import Ollama service
+import { Terminal } from "lucide-react"; // Removed ChevronDown as it wasn't used
+import { type OllamaModel } from "@/ai/services/ollama"; // Import Ollama type only
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select component
 import { Label } from "@/components/ui/label"; // Import Label
 import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
@@ -108,6 +108,10 @@ export default function Home() {
     }
   };
 
+  // Determine if the generation button should be disabled
+  const isGenerateDisabled = isLoading || isLoadingModels || !selectedModel || !prompt.trim();
+
+
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="p-4 border-b border-border bg-card shadow-md">
@@ -140,7 +144,7 @@ export default function Home() {
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border font-mono">
                        {models.length > 0 ? (
-                          models.map((model) => (
+                          models.map((model: OllamaModel) => (
                           <SelectItem key={model.name} value={model.name} className="cursor-pointer hover:bg-accent focus:bg-accent">
                              {model.name} <span className="text-xs text-muted-foreground ml-2">({(model.size / 1e9).toFixed(2)} GB)</span>
                           </SelectItem>
@@ -151,7 +155,7 @@ export default function Home() {
                     </SelectContent>
                  </Select>
                )}
-              <p className="text-xs text-muted-foreground font-mono">Ensure Ollama is running locally.</p>
+              <p className="text-xs text-muted-foreground font-mono">Ensure Ollama is running locally and models are downloaded.</p>
            </div>
 
            <Separator className="bg-border"/>
@@ -162,11 +166,11 @@ export default function Home() {
               prompt={prompt}
               setPrompt={setPrompt}
               onSubmit={handleGenerateCode}
-              isLoading={isLoading || isLoadingModels} // Disable while loading models too
-              disabled={!selectedModel} // Disable if no model selected
+              isLoading={isLoading} // Pass only generation loading state
+              disabled={isGenerateDisabled} // Use combined disabled state
             />
            </div>
-            {error && (
+            {error && !isLoading && ( // Only show error if not loading
                 <Alert variant="destructive" className="mt-4 bg-destructive/10 border-destructive/50 text-destructive">
                   <Terminal className="h-4 w-4" />
                   <AlertTitle>Error Generating Code</AlertTitle>
@@ -185,18 +189,16 @@ export default function Home() {
         <div className="lg:w-2/3 flex-grow flex flex-col overflow-hidden border border-border rounded-lg shadow-inner bg-card">
            <CodeDisplay
              code={generatedCode}
-             title="Generated Application Code"
-             language="javascript" // Default or detect based on prompt later
+             title="Generated Code Output"
+             language="tsx" // Default to tsx for React/Next.js context
+             isLoading={isLoading} // Pass loading state to CodeDisplay
            />
-           {/* Placeholder for future IDE features */}
-           {/* <div className="p-4 border-t border-border">
-             <p className="text-xs text-muted-foreground font-mono">File Explorer / Terminal / Preview Area</p>
-           </div> */}
+           {/* Future IDE features might go here */}
         </div>
       </main>
 
       <footer className="p-2 border-t border-border text-center text-xs text-muted-foreground bg-card/80 font-mono">
-        Powered by Ollama & Genkit - Retro Edition © {new Date().getFullYear()}
+        Powered by Genkit &amp; Ollama - Retro Edition © {new Date().getFullYear()}
       </footer>
     </div>
   );

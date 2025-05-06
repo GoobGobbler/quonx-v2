@@ -20,8 +20,8 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    // Add '@genkit-ai/community-ollama' here
-    serverComponentsExternalPackages: ['react-syntax-highlighter', '@genkit-ai/community-ollama'],
+    // Add required external packages here
+    serverComponentsExternalPackages: ['react-syntax-highlighter', '@genkit-ai/community-ollama', 'ollama-node'],
   },
 };
 

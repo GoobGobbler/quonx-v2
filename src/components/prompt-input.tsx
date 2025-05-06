@@ -10,8 +10,8 @@ interface PromptInputProps {
   prompt: string;
   setPrompt: (prompt: string) => void;
   onSubmit: () => void;
-  isLoading: boolean;
-  disabled?: boolean; // Add disabled prop
+  isLoading: boolean; // Tracks if the AI generation is in progress
+  disabled?: boolean; // Generic disabled state (e.g., while models load or if no model selected)
 }
 
 export function PromptInput({
@@ -19,7 +19,7 @@ export function PromptInput({
   setPrompt,
   onSubmit,
   isLoading,
-  disabled = false, // Default to false
+  disabled = false,
 }: PromptInputProps) {
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(event.target.value);
@@ -27,10 +27,20 @@ export function PromptInput({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!disabled) { // Prevent submission if disabled
+    // Submit only if not loading and not generally disabled
+    if (!isLoading && !disabled) {
         onSubmit();
     }
   };
+
+  // The button should be disabled if:
+  // 1. AI generation is loading (isLoading)
+  // 2. The component is generally disabled (disabled)
+  // 3. The prompt is empty or only whitespace
+  const isButtonDisabled = isLoading || disabled || !prompt.trim();
+  // The textarea should be disabled if loading or generally disabled
+  const isTextareaDisabled = isLoading || disabled;
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -42,8 +52,8 @@ export function PromptInput({
           value={prompt}
           onChange={handleInputChange}
           rows={5}
-          className="text-base font-mono bg-input border-border focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30" // Retro styling
-          disabled={isLoading || disabled} // Use disabled prop
+          className="text-base font-mono bg-input border-border focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30 disabled:opacity-70 disabled:cursor-not-allowed" // Added disabled styles
+          disabled={isTextareaDisabled} // Use derived disabled state
         />
         <p className="text-sm text-muted-foreground font-mono">
           Be specific about files, components, and functionality.
@@ -51,7 +61,7 @@ export function PromptInput({
       </div>
       <Button
         type="submit"
-        disabled={isLoading || disabled || !prompt.trim()} // Use disabled prop
+        disabled={isButtonDisabled} // Use derived disabled state
         className="w-full sm:w-auto bg-secondary hover:bg-secondary/90 text-secondary-foreground font-mono neon-accent disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none" // Retro styling & disabled state
       >
         {isLoading ? (
