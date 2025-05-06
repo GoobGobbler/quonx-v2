@@ -9,99 +9,99 @@ body {
 
 @layer base {
   :root {
-    /* Retro Theme - Light Mode */
-    --background: 45 33% 95%; /* Light Tan */
-    --foreground: 30 10% 10%; /* Dark Brown/Black */
+    /* Cool, Muted 60s/70s Theme - Light Mode */
+    --background: 210 10% 96%; /* Very Light Charcoal/Gray */
+    --foreground: 210 15% 15%; /* Dark Charcoal */
 
-    --card: 45 33% 90%; /* Slightly darker Tan */
-    --card-foreground: 30 10% 10%;
+    --card: 210 10% 90%; /* Slightly darker Light Charcoal/Gray */
+    --card-foreground: 210 15% 15%;
 
-    --popover: 45 33% 90%; /* Tan */
-    --popover-foreground: 30 10% 10%;
+    --popover: 210 10% 90%;
+    --popover-foreground: 210 15% 15%;
 
-    --primary: 80 40% 35%; /* Olive Green */
-    --primary-foreground: 45 33% 95%; /* Light Tan */
+    --primary: 180 50% 40%; /* Teal */
+    --primary-foreground: 180 20% 95%; /* Light Teal/Off-white */
 
-    --secondary: 25 70% 50%; /* Burnt Orange */
-    --secondary-foreground: 45 33% 95%; /* Light Tan */
+    --secondary: 45 70% 50%; /* Mustard */
+    --secondary-foreground: 45 40% 10%; /* Dark Brown for contrast on Mustard */
 
-    --muted: 45 20% 85%; /* Lighter Tan/Gray */
-    --muted-foreground: 40 10% 40%; /* Muted Brown */
+    --muted: 210 10% 85%; /* Lighter Gray */
+    --muted-foreground: 210 10% 40%; /* Medium Gray */
 
-    --accent: 55 100% 60%; /* Neon Yellow/Green (like old displays) */
-    --accent-foreground: 80 40% 15%; /* Dark Olive for contrast on accent */
+    --accent: 170 100% 55%; /* Neon Cyan/Teal Highlight */
+    --accent-foreground: 180 50% 15%; /* Dark Teal for contrast on accent */
 
     --destructive: 0 84.2% 60.2%; /* Standard Red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 40 20% 75%; /* Tan/Brown Border */
-    --input: 40 20% 88%; /* Lighter Tan for Input */
-    --ring: 55 100% 65%; /* Neon Ring on focus */
+    --border: 210 10% 75%; /* Medium Gray Border */
+    --input: 210 15% 88%; /* Lighter Gray for Input */
+    --ring: 170 100% 60%; /* Neon Cyan/Teal Ring on focus */
 
-    --chart-1: 80 40% 45%;  /* Variations of Olive */
-    --chart-2: 25 70% 60%;  /* Variations of Orange */
-    --chart-3: 45 30% 70%;  /* Variations of Tan */
-    --chart-4: 30 50% 40%;  /* Variations of Brown */
-    --chart-5: 55 80% 70%;  /* Variations of Neon Accent */
+    --chart-1: 180 50% 50%;  /* Variations of Teal */
+    --chart-2: 45 70% 60%;  /* Variations of Mustard */
+    --chart-3: 210 10% 70%; /* Variations of Gray */
+    --chart-4: 180 30% 30%; /* Darker Teal */
+    --chart-5: 45 50% 40%; /* Darker Mustard */
 
     --radius: 0.3rem; /* Slightly less rounded */
 
-    /* Sidebar variables - Adjusting to retro theme */
-    --sidebar-background: 80 20% 25%; /* Darker Olive */
-    --sidebar-foreground: 45 33% 85%; /* Light Tan/Off-white */
-    --sidebar-primary: 25 70% 50%; /* Burnt Orange */
-    --sidebar-primary-foreground: 45 33% 95%; /* Light Tan */
-    --sidebar-accent: 80 30% 40%; /* Mid Olive */
-    --sidebar-accent-foreground: 45 33% 95%; /* Light Tan */
-    --sidebar-border: 80 15% 35%; /* Darker Olive Border */
-    --sidebar-ring: 55 100% 65%; /* Neon Ring */
+    /* Sidebar variables - Adjusting to new theme */
+    --sidebar-background: 210 15% 25%; /* Dark Charcoal */
+    --sidebar-foreground: 210 10% 85%; /* Light Gray/Off-white */
+    --sidebar-primary: 45 70% 50%; /* Mustard */
+    --sidebar-primary-foreground: 45 40% 10%; /* Dark Brown */
+    --sidebar-accent: 180 40% 50%; /* Mid Teal */
+    --sidebar-accent-foreground: 180 20% 95%; /* Light Teal */
+    --sidebar-border: 210 10% 35%; /* Darker Gray Border */
+    --sidebar-ring: 170 100% 60%; /* Neon Cyan/Teal Ring */
   }
 
   .dark {
-    /* Retro Theme - Dark Mode */
-    --background: 30 15% 10%; /* Very Dark Brown */
-    --foreground: 45 33% 85%; /* Light Tan/Off-white */
+    /* Cool, Muted 60s/70s Theme - Dark Mode */
+    --background: 210 15% 10%; /* Very Dark Charcoal */
+    --foreground: 210 10% 85%; /* Light Gray/Off-white */
 
-    --card: 30 15% 15%; /* Slightly lighter Dark Brown */
-    --card-foreground: 45 33% 85%;
+    --card: 210 15% 15%; /* Slightly lighter Dark Charcoal */
+    --card-foreground: 210 10% 85%;
 
-    --popover: 30 15% 15%;
-    --popover-foreground: 45 33% 85%;
+    --popover: 210 15% 15%;
+    --popover-foreground: 210 10% 85%;
 
-    --primary: 80 40% 45%; /* Olive Green (lighter for dark mode) */
-    --primary-foreground: 30 15% 5%; /* Very Dark Brown */
+    --primary: 180 50% 55%; /* Teal (lighter for dark mode) */
+    --primary-foreground: 210 15% 5%; /* Very Dark Charcoal */
 
-    --secondary: 25 70% 60%; /* Burnt Orange (lighter for dark mode) */
-    --secondary-foreground: 30 15% 5%; /* Very Dark Brown */
+    --secondary: 45 70% 60%; /* Mustard (lighter for dark mode) */
+    --secondary-foreground: 210 15% 5%; /* Very Dark Charcoal */
 
-    --muted: 30 10% 25%; /* Dark Gray/Brown */
-    --muted-foreground: 45 20% 65%; /* Lighter Muted Tan */
+    --muted: 210 10% 25%; /* Dark Gray */
+    --muted-foreground: 210 10% 65%; /* Lighter Muted Gray */
 
-    --accent: 55 100% 60%; /* Neon Yellow/Green */
-    --accent-foreground: 30 15% 5%; /* Very Dark Brown */
+    --accent: 170 100% 60%; /* Neon Cyan/Teal Highlight */
+    --accent-foreground: 210 15% 5%; /* Very Dark Charcoal */
 
     --destructive: 0 70% 50%; /* Slightly muted Red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 30 10% 30%; /* Dark Brown Border */
-    --input: 30 10% 20%; /* Darker Brown Input */
-    --ring: 55 100% 65%; /* Neon Ring */
+    --border: 210 10% 30%; /* Dark Gray Border */
+    --input: 210 10% 20%; /* Darker Gray Input */
+    --ring: 170 100% 65%; /* Neon Cyan/Teal Ring */
 
-    --chart-1: 80 40% 55%;
-    --chart-2: 25 70% 70%;
-    --chart-3: 45 30% 75%;
-    --chart-4: 30 50% 50%;
-    --chart-5: 55 80% 75%;
+    --chart-1: 180 50% 65%;
+    --chart-2: 45 70% 70%;
+    --chart-3: 210 10% 75%;
+    --chart-4: 180 30% 40%;
+    --chart-5: 45 50% 50%;
 
-     /* Sidebar variables - Adjusting to retro theme (Dark) */
-    --sidebar-background: 30 15% 12%; /* Dark Brown */
-    --sidebar-foreground: 45 33% 80%; /* Light Tan */
-    --sidebar-primary: 25 70% 60%; /* Lighter Burnt Orange */
-    --sidebar-primary-foreground: 30 15% 5%; /* Very Dark Brown */
-    --sidebar-accent: 80 30% 35%; /* Mid-Dark Olive */
-    --sidebar-accent-foreground: 45 33% 90%; /* Lighter Tan */
-    --sidebar-border: 30 10% 25%; /* Darker Brown Border */
-    --sidebar-ring: 55 100% 65%; /* Neon Ring */
+     /* Sidebar variables - Adjusting to new theme (Dark) */
+    --sidebar-background: 210 15% 12%; /* Dark Charcoal */
+    --sidebar-foreground: 210 10% 80%; /* Light Gray */
+    --sidebar-primary: 45 70% 60%; /* Lighter Mustard */
+    --sidebar-primary-foreground: 210 15% 5%; /* Very Dark Charcoal */
+    --sidebar-accent: 180 40% 45%; /* Mid-Dark Teal */
+    --sidebar-accent-foreground: 210 10% 90%; /* Lighter Gray */
+    --sidebar-border: 210 10% 25%; /* Darker Gray Border */
+    --sidebar-ring: 170 100% 65%; /* Neon Cyan/Teal Ring */
   }
 }
 
@@ -114,7 +114,7 @@ body::before {
     width: 100vw;
     height: 100vh;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.03; /* Adjust opacity for desired grain intensity */
+    opacity: 0.04; /* Slightly increased opacity */
     pointer-events: none;
     z-index: 9999;
 }
@@ -127,11 +127,12 @@ body::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
-    background-size: 100% 3px, 4px 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(0, 255, 255, 0.01), rgba(255, 215, 0, 0.01), rgba(64, 224, 208, 0.01)); /* Adjusted colors for teal/mustard hints */
+    background-size: 100% 2px, 3px 100%; /* Thinner scan lines */
     z-index: 9998;
     pointer-events: none;
-    animation: scanline 15s linear infinite;
+    animation: scanline 20s linear infinite; /* Slower animation */
+    mix-blend-mode: overlay; /* Experiment with blend modes */
 }
 
 @keyframes scanline {
@@ -150,8 +151,57 @@ body::after {
   }
 }
 
-/* Add styles for neon-lit controls if needed */
+/* Add styles for neon-lit controls */
 .neon-accent {
-  box-shadow: 0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--accent)), 0 0 15px hsl(var(--accent));
+  box-shadow: 0 0 3px hsl(var(--accent)), 0 0 6px hsl(var(--accent)), 0 0 9px hsl(var(--accent));
   /* Adjust color and spread as needed */
+  transition: box-shadow 0.2s ease-in-out;
+}
+.neon-accent:focus, .neon-accent:hover {
+   box-shadow: 0 0 5px hsl(var(--accent)), 0 0 10px hsl(var(--accent)), 0 0 15px hsl(var(--accent)), 0 0 20px hsl(var(--ring));
+}
+
+/* Subtle Chromatic Aberration Effect (Apply sparingly to specific elements if desired) */
+.chromatic-aberration {
+  position: relative;
+}
+.chromatic-aberration::before,
+.chromatic-aberration::after {
+  content: attr(data-text); /* Requires element to have data-text attribute with its content */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  mix-blend-mode: screen; /* Or other blend modes like 'lighten' */
+  opacity: 0.7;
+}
+.chromatic-aberration::before {
+  text-shadow: -1px 0 hsl(var(--primary) / 0.5), 1px 0 hsl(var(--accent) / 0.5);
+  animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+}
+.chromatic-aberration::after {
+   text-shadow: 1px 0 hsl(var(--secondary) / 0.5), -1px 0 hsl(var(--destructive) / 0.5);
+   animation: glitch-anim-2 3s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim-1 {
+  0% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(-1px, -1px); }
+  60% { transform: translate(1px, 1px); }
+  80% { transform: translate(1px, -1px); }
+  100% { transform: translate(0); }
+}
+@keyframes glitch-anim-2 {
+ 0% { transform: translate(0); }
+  20% { transform: translate(1px, -1px); }
+  40% { transform: translate(1px, 1px); }
+  60% { transform: translate(-1px, 1px); }
+  80% { transform: translate(-1px, -1px); }
+  100% { transform: translate(0); }
 }

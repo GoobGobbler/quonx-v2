@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 const Select = SelectPrimitive.Root
 
-const SelectGroup = SelectPrimitive.Group
+const SelectGroup = SelectPrimitive.Group // Export SelectGroup
 
 const SelectValue = SelectPrimitive.Value
 
@@ -109,7 +109,7 @@ const SelectLabel = React.forwardRef<
     {...props}
   />
 ))
-SelectLabel.displayName = SelectPrimitive.Label.displayName
+SelectLabel.displayName = SelectPrimitive.Label.displayName // Export SelectLabel
 
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
@@ -148,11 +148,11 @@ SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
 export {
   Select,
-  SelectGroup,
+  SelectGroup, // Export SelectGroup
   SelectValue,
   SelectTrigger,
   SelectContent,
-  SelectLabel,
+  SelectLabel, // Export SelectLabel
   SelectItem,
   SelectSeparator,
   SelectScrollUpButton,

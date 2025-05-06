@@ -21,7 +21,13 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     // Add required external packages here
-    serverComponentsExternalPackages: ['react-syntax-highlighter', '@genkit-ai/community-ollama', 'ollama-node'],
+    serverComponentsExternalPackages: [
+      'react-syntax-highlighter',
+      'genkitx-ollama', // Ensure this is present and correct
+      '@genkit-ai/openrouter',
+      '@genkit-ai/huggingface',
+      '@genkit-ai/googleai'
+    ],
   },
 };
 

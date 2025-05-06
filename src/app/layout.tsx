@@ -3,7 +3,6 @@ import type {Metadata} from 'next';
 import { Cutive_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { OllamaProvider } from '@/context/ollama-provider'; // Import the provider
 
 // Configure Cutive Mono font
 const cutiveMono = Cutive_Mono({
@@ -27,10 +26,8 @@ export default function RootLayout({
     // Apply the font variable to the html tag
     <html lang="en" className={`${cutiveMono.variable}`}>
        <body className={`font-mono antialiased`}> {/* Use font-mono as the base */}
-         {/* Wrap children with the OllamaProvider */}
-         <OllamaProvider>
-           {children}
-         </OllamaProvider>
+         {/* OllamaProvider removed */}
+         {children}
          <Toaster />
        </body>
     </html>
