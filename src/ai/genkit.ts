@@ -11,7 +11,8 @@ import { z } from 'zod'; // Ensure zod is imported if used later
 import { config } from 'dotenv';
 config();
 
-// Configure Genkit with multiple AI providers
+// Configure Genkit with available AI providers
+// Using configureGenkit for setup, ai = genkit() for global instance
 configureGenkit({
   plugins: [
     // OpenRouter (Cloud - requires API key) - Commented out due to package not found
@@ -19,8 +20,10 @@ configureGenkit({
     //   apiKey: process.env.OPENROUTER_API_KEY, // Get key from .env
     // }),
 
-    // Hugging Face Inference API (Cloud - requires API key)
-    // Removed as package@1.8.0 not found
+    // Hugging Face Inference API (Cloud - requires API key) - Commented out due to package not found
+    // huggingFace({
+    //  apiKey: process.env.HF_API_KEY, // Get key from .env
+    // }),
 
     // Google AI / Gemini (Cloud - requires API key)
     googleAI({
@@ -35,12 +38,16 @@ configureGenkit({
   enableTracingAndMetrics: true, // Enable tracing
 });
 
-// Define model references (examples - adjust names as needed)
-// Ollama models are referenced like: ai.model('ollama/llama3') - dynamically based on listOllamaModels
-export const geminiPro = googleAI.model('googleai/gemini-1.5-flash-latest');
-export const geminiProVision = googleAI.model('googleai/gemini-pro-vision'); // Example Vision model
-// export const openRouterDefault = openRouter.model('openrouter/auto'); // OpenRouter auto-routing - Removed
-// export const hfCodeLlama = huggingFace.model('huggingface/codellama/CodeLlama-7b-hf'); // Example HF model - Removed
-
-// Export the configured ai object globally
+// Export the configured ai object globally using Genkit 1.x pattern
 export const ai = genkit();
+
+// Define model references (examples - adjust names as needed)
+// Ollama models are referenced like: ai.model('ollama/llama3') - dynamically based on listLocalOllamaModels
+export const geminiFlash = ai.model('googleai/gemini-1.5-flash-latest'); // Updated reference using ai object
+export const geminiPro = ai.model('googleai/gemini-1.5-pro-latest'); // Updated reference using ai object
+export const geminiProVision = ai.model('googleai/gemini-pro-vision'); // Example Vision model - updated reference
+
+// Examples of how OpenRouter and Hugging Face models *would* be referenced if available
+// export const openRouterDefault = ai.model('openrouter/auto');
+// export const hfCodeLlama = ai.model('huggingface/codellama/CodeLlama-7b-hf');
+

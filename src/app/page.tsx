@@ -7,11 +7,11 @@ import { CodeDisplay } from "@/components/code-display";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, Cloud, BrainCircuit } from "lucide-react"; // Removed unused Cloud icon import, kept others
+import { Terminal, RefreshCw, Server, BrainCircuit } from "lucide-react"; // Removed Cloud and other unused icons
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-// Local Ollama client-side fetch (replace if Genkit provides client-side listing)
+// Local Ollama client-side fetch
 import { listLocalOllamaModels, type OllamaModel } from '@/lib/ollama-client';
 import { Badge } from "@/components/ui/badge";
 
@@ -20,21 +20,17 @@ import { Badge } from "@/components/ui/badge";
 interface CombinedModel {
   id: string; // Fully qualified name (e.g., "ollama/llama3", "googleai/gemini-1.5-flash")
   name: string; // Display name (e.g., "llama3", "Gemini 1.5 Flash")
-  provider: 'Ollama' | 'Google AI'; // Removed 'OpenRouter' and 'Hugging Face'
+  provider: 'Ollama' | 'Google AI'; // Only include available providers
   size?: number; // Optional size in bytes (primarily for Ollama)
   description?: string; // Optional description
 }
 
-// --- Hardcoded Models (Replace/Augment with dynamic fetching if possible) ---
-// These serve as examples and should be aligned with models configured in genkit.ts
+// --- Hardcoded Models (Aligned with genkit.ts) ---
 const GOOGLE_AI_MODELS: CombinedModel[] = [
   { id: 'googleai/gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google AI', description: 'Fast, versatile model' },
   { id: 'googleai/gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', provider: 'Google AI', description: 'Most capable model' },
-  // Add other Gemini models as needed
+  // Add other available configured Gemini models if needed
 ];
-
-// Removed OPENROUTER_MODELS constant
-// Removed HUGGING_FACE_MODELS constant
 // --- End Hardcoded Models ---
 
 
@@ -51,7 +47,7 @@ export default function Home() {
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(true);
   const [modelError, setModelError] = useState<string | null>(null);
 
-  // Fetch local Ollama models and combine with others
+  // Fetch local Ollama models and combine with Google AI models
   const fetchAndCombineModels = useCallback(async () => {
     setIsLoadingModels(true);
     setModelError(null);
@@ -73,19 +69,24 @@ export default function Home() {
         // Continue without Ollama models
     }
 
+    // Combine available model sources
     const combined = [
         ...(ollamaError ? [] : localModels), // Only include if no error
         ...GOOGLE_AI_MODELS,
-        // Removed OpenRouter and Hugging Face models
     ];
     setAllModels(combined);
 
     // Set a default model if none selected and models are available
     if (!selectedModelId && combined.length > 0) {
-        // Prioritize non-local, then local
         const firstGoogle = combined.find(m => m.provider === 'Google AI');
         const firstOllama = combined.find(m => m.provider === 'Ollama');
+        // Prioritize Google AI, then Ollama, then first available
         setSelectedModelId(firstGoogle?.id || firstOllama?.id || combined[0].id);
+    } else if (selectedModelId && !combined.some(m => m.id === selectedModelId)) {
+        // If current selection is no longer valid, reset default
+        const firstGoogle = combined.find(m => m.provider === 'Google AI');
+        const firstOllama = combined.find(m => m.provider === 'Ollama');
+        setSelectedModelId(firstGoogle?.id || firstOllama?.id || (combined.length > 0 ? combined[0].id : undefined));
     } else if (combined.length === 0) {
          setSelectedModelId(undefined); // Clear selection if no models found at all
     }
@@ -103,7 +104,7 @@ export default function Home() {
 
 
     setIsLoadingModels(false);
-  }, [selectedModelId, toast]); // Depend on selectedModelId
+  }, [selectedModelId, toast]); // Depend on selectedModelId and toast
 
   // Effect to load models on mount
   useEffect(() => {
@@ -189,13 +190,14 @@ export default function Home() {
 
   const getProviderIcon = (provider: CombinedModel['provider']) => {
       switch (provider) {
-          case 'Ollama': return <Server className="h-4 w-4 mr-2 text-blue-500" />;
-          case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-green-500" />;
-          // Removed OpenRouter and Hugging Face icons
+          case 'Ollama': return <Server className="h-4 w-4 mr-2 text-blue-500" />; // Retro blue
+          case 'Google AI': return <BrainCircuit className="h-4 w-4 mr-2 text-green-500" />; // Retro green
+          // No icons needed for removed providers
           default: return null;
       }
   };
 
+  // Group models by provider for the Select component
   const groupedModels = allModels.reduce((acc, model) => {
       (acc[model.provider] = acc[model.provider] || []).push(model);
       return acc;
@@ -209,7 +211,7 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="p-4 border-b border-border bg-card shadow-md">
-         {/* Apply typewriter font style if not globally applied */}
+         {/* Retro title with chromatic aberration */}
          <h1 className="text-3xl font-bold text-primary font-mono chromatic-aberration" data-text="AIAgent - Retro IDE">AIAgent - Retro IDE</h1>
          <p className="text-sm text-muted-foreground font-mono">Develop applications with AI assistance (60s/70s Edition)</p>
       </header>
@@ -226,9 +228,9 @@ export default function Home() {
                  </button>
               </Label>
                {isLoadingModels && !allModels.length ? ( // Show skeleton only on initial load
-                 <Skeleton className="h-10 w-full" />
+                 <Skeleton className="h-10 w-full bg-muted" /> // Use muted background for skeleton
                ) : modelError && allModels.length === 0 ? ( // Show error only if loading failed AND no models listed
-                   <Alert variant="destructive" className="py-2 px-3">
+                   <Alert variant="destructive" className="py-2 px-3 bg-destructive/10 border-destructive/50 text-destructive">
                       <Terminal className="h-4 w-4" />
                       <AlertDescription className="text-xs">{modelError}
                          <button onClick={fetchAndCombineModels} className="underline ml-1">(Retry)</button>
@@ -240,43 +242,48 @@ export default function Home() {
                    onValueChange={(value) => setSelectedModelId(value || undefined)}
                    disabled={isLoadingModels || allModels.length === 0}
                  >
-                    <SelectTrigger id="model-select" className="w-full bg-input border-border font-mono neon-accent focus:ring-ring">
+                    <SelectTrigger id="model-select" className="w-full bg-input border-input font-mono neon-accent focus:ring-ring focus:border-accent">
                        <SelectValue placeholder="Select a model..." />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border font-mono max-h-[400px] overflow-y-auto">
-                      {Object.entries(groupedModels).map(([provider, models]) => (
+                      {/* Map over available providers (Ollama, Google AI) */}
+                      {(Object.keys(groupedModels) as Array<keyof typeof groupedModels>).map((provider) => (
                           <SelectGroup key={provider}>
-                              <SelectLabel className="text-xs text-muted-foreground flex items-center">
+                              <SelectLabel className="text-xs text-muted-foreground flex items-center pl-2 pr-2 py-1 font-mono">
                                   {getProviderIcon(provider as CombinedModel['provider'])}
                                   {provider}
                               </SelectLabel>
-                              {models.map((model) => (
-                                  <SelectItem key={model.id} value={model.id} className="cursor-pointer hover:bg-accent focus:bg-accent">
+                              {groupedModels[provider].map((model) => (
+                                  <SelectItem
+                                     key={model.id}
+                                     value={model.id}
+                                     className="cursor-pointer hover:bg-accent/20 focus:bg-accent/30 font-mono" // Retro hover/focus
+                                  >
                                       <span className="flex items-center justify-between w-full">
                                           <span>{model.name}</span>
                                           {model.size && (
-                                            <Badge variant="outline" className="ml-2 text-xs px-1 py-0">
+                                            <Badge variant="outline" className="ml-2 text-xs px-1 py-0 border-muted text-muted-foreground bg-transparent">
                                                 {(model.size / 1e9).toFixed(2)} GB
                                             </Badge>
                                           )}
                                       </span>
-                                      {model.description && <p className="text-xs text-muted-foreground mt-1">{model.description}</p>}
+                                      {model.description && <p className="text-xs text-muted-foreground mt-1 font-mono">{model.description}</p>}
                                   </SelectItem>
                               ))}
                           </SelectGroup>
                       ))}
                        {allModels.length === 0 && !isLoadingModels && (
-                          <SelectItem value="no-models" disabled>No models found or loaded</SelectItem>
+                          <SelectItem value="no-models" disabled className="font-mono">No models found or loaded</SelectItem>
                        )}
                     </SelectContent>
                  </Select>
                )}
               <p className="text-xs text-muted-foreground font-mono">
-                Select a model provider. Ensure Ollama is running for local models. Add API keys in settings (TBD) for cloud models.
+                Select a model provider. Ensure Ollama is running for local models. API keys for Google AI are configured server-side.
               </p>
            </div>
 
-           <Separator className="bg-border"/>
+           <Separator className="bg-border/50"/>
 
            {/* Prompt Input */}
            <div className="flex-shrink-0">
@@ -289,7 +296,7 @@ export default function Home() {
             />
            </div>
             {generationError && !isLoadingGeneration && ( // Only show generation error if not loading
-                <Alert variant="destructive" className="mt-4 bg-destructive/10 border-destructive/50 text-destructive">
+                <Alert variant="destructive" className="mt-4 bg-destructive/10 border-destructive/50 text-destructive font-mono">
                   <Terminal className="h-4 w-4" />
                   <AlertTitle>Error Generating Code</AlertTitle>
                   <AlertDescription>{generationError}</AlertDescription>
@@ -298,9 +305,9 @@ export default function Home() {
         </div>
 
         {/* Vertical Separator */}
-        <Separator orientation="vertical" className="hidden lg:block mx-2 h-auto bg-border/50" />
+        <Separator orientation="vertical" className="hidden lg:block mx-2 h-auto bg-border/30" />
         {/* Horizontal Separator for mobile */}
-        <Separator orientation="horizontal" className="lg:hidden my-2 w-auto bg-border/50" />
+        <Separator orientation="horizontal" className="lg:hidden my-2 w-auto bg-border/30" />
 
 
         {/* Right Side: Code Display */}
@@ -316,8 +323,10 @@ export default function Home() {
       </main>
 
       <footer className="p-2 border-t border-border text-center text-xs text-muted-foreground bg-card/80 font-mono">
+         {/* Removed OpenRouter/HF */}
          Powered by Genkit, Ollama &amp; Google AI - Retro Edition © {new Date().getFullYear()}
       </footer>
     </div>
   );
 }
+
