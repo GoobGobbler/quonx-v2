@@ -42,10 +42,10 @@ configureGenkit({
 
 // Define model references (examples - adjust names as needed)
 // Ollama models are referenced like: ai.model('ollama/llama3') - dynamically based on listOllamaModels
-export const geminiPro = googleAI.model('gemini-1.5-flash-latest');
-export const geminiProVision = googleAI.model('gemini-pro-vision'); // Example Vision model
+export const geminiPro = googleAI.model('googleai/gemini-1.5-flash-latest');
+export const geminiProVision = googleAI.model('googleai/gemini-pro-vision'); // Example Vision model
 export const openRouterDefault = openRouter.model('openrouter/auto'); // OpenRouter auto-routing
-export const hfCodeLlama = huggingFace.model('codellama/CodeLlama-7b-hf'); // Example HF model
+export const hfCodeLlama = huggingFace.model('huggingface/codellama/CodeLlama-7b-hf'); // Example HF model
 
 // Export the configured ai object globally
 export const ai = genkit();
