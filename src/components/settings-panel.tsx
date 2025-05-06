@@ -5,7 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input'; // Import Input
-import { X, Palette, Cpu, Code, GitBranch, Cloud, Settings2, Save } from 'lucide-react';
+// Import Settings icon from lucide-react
+import { X, Palette, Cpu, Code, GitBranch, Cloud, Settings2, Save, Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from './ui/separator';
 import { useToast } from "@/hooks/use-toast"; // Import useToast
