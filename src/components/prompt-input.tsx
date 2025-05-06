@@ -15,6 +15,7 @@ interface PromptInputProps {
   disabled?: boolean; // Generic disabled state
   buttonText?: string; // Custom button text
   textAreaClass?: string; // Allow passing class to textarea
+  placeholderText?: string; // Add specific placeholder text prop
 }
 
 export function PromptInput({
@@ -23,8 +24,9 @@ export function PromptInput({
   onSubmit,
   isLoading,
   disabled = false,
-  buttonText = "Generate Code", // Default button text
-  textAreaClass
+  buttonText = "Generate Code",
+  textAreaClass,
+  placeholderText = "// Enter prompt: Describe application, file structure, features..." // Default placeholder
 }: PromptInputProps) {
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(event.target.value);
@@ -48,27 +50,25 @@ export function PromptInput({
             &gt; Input_Prompt:
         </Label>
         <Textarea
-          placeholder="// Enter prompt: Describe application, file structure, features..."
+          placeholder={placeholderText} // Use the placeholderText prop
           id="prompt"
           value={prompt}
           onChange={handleInputChange}
-          // Use flex-grow to make textarea fill available space
           className={cn(
               "text-sm font-mono bg-input border border-border focus:ring-1 focus:ring-ring focus:border-accent caret-accent selection:bg-accent/30 disabled:opacity-70 disabled:cursor-not-allowed rounded-none resize-none flex-grow terminal-input", // Apply terminal styles
-              textAreaClass // Apply passed classes
+              textAreaClass
               )}
           disabled={isTextareaDisabled}
-          rows={5} // Initial rows, but flex-grow handles height
+          rows={5}
         />
         <p className="text-xs text-muted-foreground font-mono">
-          // Use specific instructions for files, components, languages.
+          // Use specific instructions for files, components, languages, tests, security.
         </p>
       </div>
       <Button
         type="submit"
         disabled={isButtonDisabled}
-        // Apply neon button style and terminal look
-        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 mt-auto" // mt-auto pushes button down in flex container
+        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 mt-auto"
       >
         {isLoading ? (
           <>
@@ -76,7 +76,7 @@ export function PromptInput({
             Processing...
           </>
         ) : (
-          buttonText // Use the buttonText prop
+          buttonText
         )}
       </Button>
     </form>
