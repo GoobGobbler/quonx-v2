@@ -19,29 +19,29 @@ interface CodeDisplayProps {
   containerClassName?: string; // Allow passing container classes
 }
 
+const PLACEHOLDER_CODE = "// Output buffer empty. Execute generation command or select a file...";
+const LOADING_CODE = "// Initializing output buffer...";
+
 export function CodeDisplay({
     code,
-    title = "// Generated_Code //",
+    title = "// Generated_Code_Buffer //",
     language = "typescript",
     isLoading = false,
     containerClassName
 }: CodeDisplayProps) {
   const { toast } = useToast();
   const [hasCopied, setHasCopied] = useState(false);
-  const [displayCode, setDisplayCode] = useState<string | null>(null);
-  const [currentYear, setCurrentYear] = useState<number | null>(null); // Still needed for footer example
+  // No need for displayCode state, directly use `code` prop which will be updated by parent
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
 
-  // Defer setting displayCode and currentYear until client-side mount
   useEffect(() => {
-    // Set initial placeholder text or actual code
-    setDisplayCode(code || "// Output buffer empty. Execute generation command...");
     setCurrentYear(new Date().getFullYear());
-  }, [code]); // Update when code prop changes
+  }, []);
 
 
   const handleCopy = () => {
-    if (!displayCode || isLoading || displayCode === "// Output buffer empty. Execute generation command...") return; // Don't copy placeholder or if loading
-    navigator.clipboard.writeText(displayCode).then(() => {
+    if (!code || isLoading || code === PLACEHOLDER_CODE || code === LOADING_CODE) return;
+    navigator.clipboard.writeText(code).then(() => {
       setHasCopied(true);
       toast({
         title: "SYS: Clipboard Write OK",
@@ -59,49 +59,48 @@ export function CodeDisplay({
     });
   };
 
-   // Reset copy icon after a delay
   useEffect(() => {
     if (hasCopied) {
       const timer = setTimeout(() => {
         setHasCopied(false);
-      }, 2000); // Reset after 2 seconds
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [hasCopied]);
 
+  const displayTitle = title || (isLoading ? "// Processing..." : "// IDE_Buffer");
+  const codeToDisplay = code || PLACEHOLDER_CODE;
+  const lineCount = codeToDisplay.split('\n').length;
+  const charCount = codeToDisplay.length;
+
 
   return (
-    // Main container div with passed classes
     <div className={cn("h-full flex flex-col bg-background border-border shadow-inner overflow-hidden rounded-none", containerClassName)}>
-      {/* Header Section */}
       <div className="flex flex-row items-center justify-between pb-1 px-3 pt-2 border-b border-border flex-shrink-0">
-        <h2 className="text-sm font-semibold font-mono text-primary truncate" title={title}>{title}</h2>
+        <h2 className="text-sm font-semibold font-mono text-primary truncate" title={displayTitle}>{displayTitle}</h2>
         <Button
           variant="ghost"
           size="icon"
           onClick={handleCopy}
           aria-label="Copy code"
-          disabled={!displayCode || isLoading || hasCopied || displayCode === "// Output buffer empty. Execute generation command..."}
-          className="text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed w-6 h-6 p-1 rounded-none border border-transparent hover:border-accent" // Terminal style button
+          disabled={!code || isLoading || hasCopied || code === PLACEHOLDER_CODE || code === LOADING_CODE}
+          className="text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed w-6 h-6 p-1 rounded-none border border-transparent hover:border-accent neon-glow"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : hasCopied ? (
-            <Check className="h-4 w-4 text-primary" /> // Use primary green for check
+            <Check className="h-4 w-4 text-primary" />
           ) : (
             <Copy className="h-4 w-4" />
           )}
         </Button>
       </div>
 
-      {/* Code Content Area */}
       <div className="flex-grow p-0 overflow-hidden relative">
-        {/* Overlay for Loading State */}
-        {isLoading && (
+        {isLoading && ( // Show loading overlay ONLY if isLoading is true
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-             <p className="text-muted-foreground font-mono text-center">// Processing generation request...</p>
-             {/* Simplified skeleton */}
+             <p className="text-muted-foreground font-mono text-center">// Processing AI request...</p>
              <div className="w-3/4 mt-4 space-y-2">
                  <Skeleton className="h-3 w-full bg-muted/50" />
                  <Skeleton className="h-3 w-5/6 bg-muted/50" />
@@ -109,50 +108,46 @@ export function CodeDisplay({
              </div>
           </div>
         )}
-        {/* ScrollArea for Code */}
         <ScrollArea className="h-full">
-          {displayCode !== null ? (
+          {codeToDisplay === LOADING_CODE && !isLoading ? ( // Show placeholder if code is null/undefined but not actively loading
+             <div className="p-4 text-muted-foreground font-mono text-sm h-full flex items-center justify-center">
+               <p>{PLACEHOLDER_CODE}</p>
+             </div>
+           ) : (
              <SyntaxHighlighter
                 language={language}
-                style={oneDark} // Use 'oneDark' theme
+                style={oneDark}
                 customStyle={{
                     margin: 0,
-                    backgroundColor: 'hsl(var(--background))', // Use CSS variable for background
-                    color: 'hsl(var(--foreground))', // Ensure text color matches foreground
+                    backgroundColor: 'hsl(var(--background))',
+                    color: 'hsl(var(--foreground))',
                     height: '100%',
                     overflow: 'auto',
-                    fontSize: '0.8rem', // Slightly smaller font for terminal feel
-                    padding: '0.5rem 1rem', // Adjust padding
-                    fontFamily: 'var(--font-source-code-pro, var(--font-cutive-mono, monospace))', // Consistent font from layout
-                    lineHeight: '1.4', // Adjust line height
+                    fontSize: '0.8rem',
+                    padding: '0.5rem 1rem',
+                    fontFamily: 'var(--font-source-code-pro, var(--font-cutive-mono, monospace))',
+                    lineHeight: '1.4',
                 }}
-                 codeTagProps={{ style: { fontFamily: 'inherit' } }} // Inherit font family
+                 codeTagProps={{ style: { fontFamily: 'inherit' } }}
                  wrapLongLines={true}
                  showLineNumbers={true}
-                 // Terminal-style line numbers
                  lineNumberStyle={{ color: 'hsl(var(--muted-foreground) / 0.6)', fontSize: '0.7rem', marginRight: '1rem', userSelect: 'none' }}
               >
-                {displayCode}
+                {codeToDisplay}
               </SyntaxHighlighter>
-          ) : (
-             // Simple text placeholder during SSR/hydration before code is ready
-             <div className="p-4 text-muted-foreground font-mono text-sm">
-               // Initializing output buffer...
-             </div>
-          )}
+           )}
         </ScrollArea>
       </div>
 
-      {/* Footer Section */}
        <div className="text-xs text-muted-foreground pt-1 px-3 pb-1 border-t border-border font-mono min-h-[25px] flex items-center flex-shrink-0">
          {isLoading ? (
              <>
                <Loader2 className="h-3 w-3 animate-spin mr-2" /> Transmitting...
              </>
-           ) : displayCode && displayCode !== "// Output buffer empty. Execute generation command..." ? (
-               `LN: ${displayCode.split('\n').length} | CH: ${displayCode.length} | LANG: ${language}`
+           ) : code && code !== PLACEHOLDER_CODE && code !== LOADING_CODE ? (
+               `LN: ${lineCount} | CH: ${charCount} | LANG: ${language}`
            ) : (
-               "// Awaiting command..."
+               "// Awaiting command or file selection..."
            )
          }
        </div>

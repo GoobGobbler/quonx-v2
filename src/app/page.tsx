@@ -8,7 +8,7 @@ import { PromptInput } from "@/components/prompt-input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX, Loader2, ListPlus, Binary, Activity, Check } from "lucide-react"; // Added PackageX icon and others, added Check
+import { Terminal, RefreshCw, Server, BrainCircuit, X, Pencil, Settings, Users, ShieldCheck, GitBranch, CloudCog, FolderTree, MessageSquare, Info, Box, Bot, Construction, HardDrive, Workflow, TestTubeDiagonal, UserCheck, LayoutPanelLeft, Code, File, Folder, PackageX, Loader2, ListPlus, Binary, Activity, Check, FilePlus, FolderPlus } from "lucide-react"; // Added FilePlus, FolderPlus
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -115,6 +115,42 @@ interface AgentTask {
     progress?: number; // 0-100
 }
 
+// Helper to generate a unique ID for file tree nodes
+const generateNodeId = (type: 'file' | 'folder', name: string) => `${type}-${name.replace(/\s+/g, '-')}-${Date.now()}`;
+
+// Helper function to add a node to the file tree
+const addNodeToTree = (nodes: FileTreeNode[], parentPath: string, newNode: FileTreeNode): FileTreeNode[] => {
+    return nodes.map(node => {
+        if (node.path === parentPath && node.type === 'folder') {
+            return {
+                ...node,
+                children: [...(node.children || []), newNode].sort((a,b) => a.name.localeCompare(b.name)), // Keep sorted
+            };
+        }
+        if (node.children) {
+            return {
+                ...node,
+                children: addNodeToTree(node.children, parentPath, newNode),
+            };
+        }
+        return node;
+    });
+};
+
+// Helper function to find a node by ID or path
+const findNodeInTree = (nodes: FileTreeNode[], idOrPath: string): FileTreeNode | null => {
+    for (const node of nodes) {
+        if (node.id === idOrPath || node.path === idOrPath) {
+            return node;
+        }
+        if (node.children) {
+            const found = findNodeInTree(node.children, idOrPath);
+            if (found) return found;
+        }
+    }
+    return null;
+};
+
 
 export default function Home() {
   const [prompt, setPrompt] = useState<string>("");
@@ -140,27 +176,26 @@ export default function Home() {
   // --- State for Conceptual Features ---
   const [codeAssistantChatVisible, setCodeAssistantChatVisible] = useState(false); // Example state
   const [projectArchitectChatVisible, setProjectArchitectChatVisible] = useState(false); // Example state
-  const [activeTab, setActiveTab] = useState<string | null>(null); // Example: Track active file tab
-  const [openFiles, setOpenFiles] = useState<string[]>([]); // Example: Track open files
+  const [activeTab, setActiveTab] = useState<string | null>(null); // Tracks active file ID
+  const [openFiles, setOpenFiles] = useState<string[]>([]); // Tracks IDs of open files
 
   // Initialize file tree state (Conceptual)
   const [fileTree, setFileTree] = useState<FileTreeNode[]>([
       { id: 'src', name: 'src', type: 'folder', path: 'src', children: [
           { id: 'app', name: 'app', type: 'folder', path: 'src/app', children: [
-              { id: 'page.tsx', name: 'page.tsx', type: 'file', path: 'src/app/page.tsx', content: '// src/app/page.tsx content...' },
-              { id: 'layout.tsx', name: 'layout.tsx', type: 'file', path: 'src/app/layout.tsx', content: '// src/app/layout.tsx content...' },
-              { id: 'globals.css', name: 'globals.css', type: 'file', path: 'src/app/globals.css', content: '/* src/app/globals.css content... */' },
+              { id: 'page.tsx-default', name: 'page.tsx', type: 'file', path: 'src/app/page.tsx', content: '// Default src/app/page.tsx content...\n// This is a placeholder. Generate or select another file.' },
+              { id: 'layout.tsx-default', name: 'layout.tsx', type: 'file', path: 'src/app/layout.tsx', content: '// Default src/app/layout.tsx content...' },
+              { id: 'globals.css-default', name: 'globals.css', type: 'file', path: 'src/app/globals.css', content: '/* Default src/app/globals.css content... */' },
           ]},
           { id: 'components', name: 'components', type: 'folder', path: 'src/components', children: [
               { id: 'ui', name: 'ui', type: 'folder', path: 'src/components/ui', children: []},
-              { id: 'prompt-input.tsx', name: 'prompt-input.tsx', type: 'file', path: 'src/components/prompt-input.tsx', content: '// src/components/prompt-input.tsx content...' },
           ]},
           { id: 'ai', name: 'ai', type: 'folder', path: 'src/ai', children: []},
           { id: 'lib', name: 'lib', type: 'folder', path: 'src/lib', children: []},
       ]},
       { id: 'public', name: 'public', type: 'folder', path: 'public', children: []},
-      { id: 'package.json', name: 'package.json', type: 'file', path: 'package.json', content: '{ "name": "example" }' },
-      { id: 'README.md', name: 'README.md', type: 'file', path: 'README.md', content: '# Example README' },
+      { id: 'package.json-default', name: 'package.json', type: 'file', path: 'package.json', content: '{ "name": "my-new-project", "version": "0.1.0" }' },
+      { id: 'README.md-default', name: 'README.md', type: 'file', path: 'README.md', content: '# My New Project README' },
   ]);
   // --- End State for Conceptual Features ---
 
@@ -176,7 +211,7 @@ export default function Home() {
           description,
           progress: 0,
       };
-      setAgentTasks(prev => [...prev, newTask]);
+      setAgentTasks(prev => [newTask, ...prev.slice(0,9)]); // Keep max 10 tasks, new ones at top
       // Simulate task execution (replace with actual agent calls)
       simulateTaskExecution(newTask.id);
   };
@@ -260,19 +295,33 @@ export default function Home() {
     // Add cloud models based on potential list and settings availability
     if (settings.googleApiKey) {
         configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Google AI' && !m.unavailable));
-    }
-    // Add OpenRouter models but keep marked as unavailable if plugin is missing
-    configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
-    if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'OpenRouter' && m.unavailable)) {
-        const reason = POTENTIAL_CLOUD_MODELS.find(m => m.provider === 'OpenRouter' && m.unavailable)?.unavailableReason || 'Package not found.';
-        pluginWarnings.push(`OpenRouter integration unavailable: ${reason}`);
+    } else {
+        pluginWarnings.push(`Google AI models unavailable: GOOGLE_API_KEY not set in Settings.`);
     }
 
-    // Add Hugging Face models but keep marked as unavailable if plugin is missing
-    configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
-    if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'Hugging Face' && m.unavailable)) {
-        const reason = POTENTIAL_CLOUD_MODELS.find(m => m.provider === 'Hugging Face' && m.unavailable)?.unavailableReason || 'Package not found.';
-        pluginWarnings.push(`HuggingFace integration unavailable: ${reason}`);
+    // Add OpenRouter models but keep marked as unavailable if plugin is missing OR key is missing
+    const openRouterAvailableModels = POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter');
+    if (settings.openRouterApiKey) {
+        configuredCloudModels.push(...openRouterAvailableModels.filter(m => !m.unavailable));
+    } else {
+         pluginWarnings.push(`OpenRouter models unavailable: OPENROUTER_API_KEY not set in Settings.`);
+    }
+    if (openRouterAvailableModels.some(m => m.unavailable)) { // Also check for package issues
+        const reason = openRouterAvailableModels.find(m => m.unavailable)?.unavailableReason || 'Package not found.';
+        pluginWarnings.push(`OpenRouter integration issue: ${reason}`);
+    }
+
+
+    // Add Hugging Face models but keep marked as unavailable if plugin is missing OR key is missing
+    const huggingFaceAvailableModels = POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face');
+    if (settings.huggingFaceApiKey) {
+        configuredCloudModels.push(...huggingFaceAvailableModels.filter(m => !m.unavailable));
+    } else {
+        pluginWarnings.push(`HuggingFace models unavailable: HF_API_KEY not set in Settings.`);
+    }
+    if (huggingFaceAvailableModels.some(m => m.unavailable)) { // Also check for package issues
+        const reason = huggingFaceAvailableModels.find(m => m.unavailable)?.unavailableReason || 'Package not found.';
+        pluginWarnings.push(`HuggingFace integration issue: ${reason}`);
     }
 
 
@@ -280,11 +329,20 @@ export default function Home() {
     const combined = [
         ...(ollamaError ? [] : localModels), // Only include Ollama if no error
         ...configuredCloudModels, // Include cloud models based on key presence and plugin status
-    ];
+    ].filter((model, index, self) => // Deduplicate based on ID
+        index === self.findIndex((t) => (t.id === model.id))
+    );
     setAllModels(combined);
 
     // Filter only AVAILABLE models for selection logic
-    const availableModels = combined.filter(m => !m.unavailable);
+    const availableModels = combined.filter(m => !m.unavailable &&
+      ((m.provider === 'Google AI' && !!settings.googleApiKey) ||
+       (m.provider === 'OpenRouter' && !!settings.openRouterApiKey && !POTENTIAL_CLOUD_MODELS.find(pm => pm.id === m.id)?.unavailable) || // Also check package status for OpenRouter
+       (m.provider === 'Hugging Face' && !!settings.huggingFaceApiKey && !POTENTIAL_CLOUD_MODELS.find(pm => pm.id === m.id)?.unavailable) || // Also check package status for Hugging Face
+       (m.provider === 'Ollama' && !ollamaError)
+      )
+    );
+
 
     // Set a default model intelligently, prioritizing configured cloud models, then Ollama, ONLY from AVAILABLE models
     if (!selectedModelId || !availableModels.some(m => m.id === selectedModelId)) {
@@ -314,18 +372,17 @@ export default function Home() {
         // No Ollama error, but list is empty OR all models are unavailable
          const missingKeys = [
              !settings.googleApiKey && "Google AI",
-             // OpenRouter and Hugging Face keys are less relevant if packages are missing
-             // !settings.openRouterApiKey && "OpenRouter",
-             // !settings.huggingFaceApiKey && "Hugging Face"
+             !settings.openRouterApiKey && "OpenRouter",
+             !settings.huggingFaceApiKey && "Hugging Face"
          ].filter(Boolean).join(', ');
 
          let baseMessage = `No available AI models found. Check Ollama status.`;
          if (missingKeys) {
-             baseMessage += ` For cloud models, configure API keys in Settings (Missing: ${missingKeys}).`;
+             baseMessage += ` For cloud models, configure API keys in Settings (Potentially missing/inactive: ${missingKeys}).`;
          }
-         if (pluginWarnings.length > 0) { // Add plugin unavailability info
-             baseMessage += ` Additionally, some integrations (OpenRouter, HuggingFace) are unavailable due to missing packages.`;
-         } else {
+         if (pluginWarnings.some(w => w.includes("package not found"))) { // Add plugin unavailability info
+             baseMessage += ` Additionally, some integrations (OpenRouter, HuggingFace) may be unavailable due to missing packages.`;
+         } else if (!pluginWarnings.some(w => w.includes("API key"))) { // If no key warnings, then it's general plugin issue
             baseMessage += ` Ensure required Genkit plugins are installed and configured for other providers.`;
          }
          errorMessage = baseMessage;
@@ -384,8 +441,33 @@ export default function Home() {
             setGeneratedCode("// Output buffer empty. Awaiting command...");
             setValidationStatus("Idle");
         }
+
+        // Set initial active tab to the first file if no other state implies generated code
+        if (!storedCode && fileTree.length > 0) {
+            const firstFile = findFirstFile(fileTree);
+            if (firstFile) {
+                setActiveTab(firstFile.id);
+                setGeneratedCode(firstFile.content || `// Content for ${firstFile.path}`);
+                setOpenFiles([firstFile.id]);
+                setValidationStatus("Loaded");
+                setValidationMessage(`Loaded file: ${firstFile.name}`);
+            }
+        }
+
     }
    }, []); // Run only once on mount
+
+  // Helper to find the first file in the tree recursively
+  const findFirstFile = (nodes: FileTreeNode[]): FileTreeNode | null => {
+    for (const node of nodes) {
+      if (node.type === 'file') return node;
+      if (node.children) {
+        const found = findFirstFile(node.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
 
 
   const handleGenerate = async (currentPrompt: string, codeToEdit?: string) => {
@@ -474,6 +556,7 @@ export default function Home() {
                   setValidationMessage(postValidationResult.message);
                   // Display the flawed code for inspection/edit but show error
                   setGeneratedCode(result.code);
+                  setActiveTab(null); // Switch to "Generated Output Buffer"
                   setGenerationError(errorMsg); // Set error state for persistent UI message
                   toast({
                       variant: "destructive",
@@ -488,6 +571,7 @@ export default function Home() {
                   setValidationStatus("Success");
                   setValidationMessage("Code generated and validated successfully.");
                   setGeneratedCode(result.code);
+                  setActiveTab(null); // Switch to "Generated Output Buffer"
                   setGenerationError(null); // Clear error on success
 
                   // Store successful code ONLY if validation passes
@@ -545,9 +629,9 @@ export default function Home() {
 
   // Wrapper for initial generation from main prompt
   const handleInitialGenerate = () => {
+      const agentDescription = `Project Architect: Scaffold project based on prompt: "${prompt.substring(0, 50)}..."`;
       handleGenerate(prompt);
-      // Example: Add task to Project Architect (Conceptual)
-      addAgentTask('Project Architect', `Scaffold project based on prompt: "${prompt.substring(0, 50)}..."`);
+      addAgentTask('Project Architect', agentDescription);
   };
 
   // Handler for the edit popup submission
@@ -556,22 +640,56 @@ export default function Home() {
            toast({ variant: "destructive", title: "ERR: No Code to Edit", description: "Generate code first.", className: "font-mono" });
            return;
       }
-      // Use a more descriptive prompt for editing
+      const agentDescription = `Code Assistant: Edit code. Instructions: "${editPrompt.substring(0, 50)}..."`;
       const combinedEditPrompt = `Edit the following code based on these instructions:\n\nInstructions: ${editPrompt}\n\nCurrent Code to Edit:\n\`\`\`\n${generatedCode}\n\`\`\``;
       handleGenerate(combinedEditPrompt, generatedCode); // Pass combined prompt and current code
       setIsEditPopupOpen(false);
-      // Example: Add task to Code Assistant (Conceptual)
-      addAgentTask('Code Assistant', `Edit code based on instructions: "${editPrompt.substring(0, 50)}..."`);
+      addAgentTask('Code Assistant', agentDescription);
   };
 
   // Handler for the retry button in the error alert or validation failed state
   const handleRetry = () => {
        if (prompt || previousSuccessfulCode) { // Allow retry even if prompt is empty if there's previous code
+           const agentDescription = `Project Architect: Retry generation for prompt: "${prompt.substring(0, 50)}..."`;
            handleGenerate(prompt, previousSuccessfulCode); // Retry with current prompt and last good code
-           addAgentTask('Project Architect', `Retry generation for prompt: "${prompt.substring(0, 50)}..."`); // Example task
+           addAgentTask('Project Architect', agentDescription); // Example task
        } else {
            toast({ variant: "destructive", title: "ERR: Nothing to Retry", description: "Enter a prompt or load previous code.", className: "font-mono" });
        }
+  };
+
+  const handleAddFile = (parentFolderNode: FileTreeNode) => {
+    const fileName = window.prompt(`Enter new file name for folder "${parentFolderNode.name}":\n(e.g., utils.ts, styles.css)`);
+    if (fileName && fileName.trim()) {
+        const newFileId = generateNodeId('file', fileName);
+        const newFilePath = `${parentFolderNode.path}/${fileName.trim()}`;
+        const newFileNode: FileTreeNode = {
+            id: newFileId,
+            name: fileName.trim(),
+            type: 'file',
+            path: newFilePath,
+            content: `// File: ${newFilePath}\n// Add content here...\n`
+        };
+        setFileTree(prevTree => addNodeToTree(prevTree, parentFolderNode.path, newFileNode));
+        toast({ title: "File Added", description: `File "${fileName}" created in "${parentFolderNode.name}".`, className: "font-mono text-xs" });
+    }
+  };
+
+  const handleAddFolder = (parentFolderNode: FileTreeNode) => {
+    const folderName = window.prompt(`Enter new folder name for folder "${parentFolderNode.name}":\n(e.g., services, assets)`);
+    if (folderName && folderName.trim()) {
+        const newFolderId = generateNodeId('folder', folderName);
+        const newFolderPath = `${parentFolderNode.path}/${folderName.trim()}`;
+        const newFolderNode: FileTreeNode = {
+            id: newFolderId,
+            name: folderName.trim(),
+            type: 'folder',
+            path: newFolderPath,
+            children: []
+        };
+        setFileTree(prevTree => addNodeToTree(prevTree, parentFolderNode.path, newFolderNode));
+        toast({ title: "Folder Added", description: `Folder "${folderName}" created in "${parentFolderNode.name}".`, className: "font-mono text-xs" });
+    }
   };
 
 
@@ -615,50 +733,47 @@ export default function Home() {
       return nodes.map(node => (
           <AccordionItem value={node.id} key={node.id} className="border-none">
               <div className={`flex items-center group ml-${level * 2}`}> {/* Indentation */}
-                  {node.type === 'folder' && node.children && node.children.length > 0 ? (
-                       <AccordionTrigger className="flex-grow p-0 hover:no-underline">
+                  {node.type === 'folder' ? (
+                       <AccordionTrigger className="flex-grow p-0 hover:no-underline group/trigger">
                            <SidebarMenuButton
                                size="sm"
                                className="w-full justify-start hover:bg-transparent data-[state=open]:bg-accent/10"
                                tooltip={node.path}
                                asChild
                            >
-                             <div> {/* Wrap content for proper layout */}
-                               <Folder className="text-accent group-data-[state=open]:text-accent/80 mr-1.5" />
+                             <div className="flex items-center"> {/* Wrap content for proper layout */}
+                               <Folder className="text-accent group-data-[state=open]/trigger:text-accent/80 mr-1.5" />
                                <span className="truncate">{node.name}</span>
                              </div>
                            </SidebarMenuButton>
                        </AccordionTrigger>
-                  ) : (
+                  ) : ( // File
                       <SidebarMenuButton
                           size="sm"
                           className="w-full justify-start flex-grow"
                           tooltip={node.path}
                           isActive={activeTab === node.id}
                           onClick={() => {
-                              if (node.type === 'file') {
-                                  setActiveTab(node.id);
-                                  if (!openFiles.includes(node.id)) {
-                                      setOpenFiles(prev => [...prev, node.id]);
-                                  }
-                                  // Load file content into the editor (conceptual)
-                                  setGeneratedCode(node.content || `// Content for ${node.path}`);
-                                  setValidationStatus("Loaded");
-                                  setValidationMessage(`Loaded file: ${node.name}`);
-                                  console.log("Open file:", node.path);
+                              setActiveTab(node.id);
+                              if (!openFiles.includes(node.id)) {
+                                  setOpenFiles(prev => [...prev, node.id]);
                               }
+                              setGeneratedCode(node.content || `// Content for ${node.path}`);
+                              setValidationStatus("Loaded");
+                              setValidationMessage(`Loaded file: ${node.name}`);
+                              console.log("Open file:", node.path);
                           }}
                       >
                           <File className="text-secondary mr-1.5"/>
                           <span className="truncate">{node.name}</span>
                       </SidebarMenuButton>
                   )}
-                   {/* Add File/Folder Actions (Conceptual) */}
+                   {/* Add File/Folder Actions */}
                    <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto mr-1 flex gap-0.5">
                        <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-none" onClick={() => console.log('Add File to:', node.path)}>
-                                    <ListPlus className="h-3 w-3"/>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-none" onClick={() => handleAddFile(node.type === 'folder' ? node : findNodeInTree(fileTree, node.path.substring(0, node.path.lastIndexOf('/'))) || fileTree[0] )}>
+                                    <FilePlus className="h-3 w-3"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right" className="font-mono text-xs">Add File</TooltipContent>
@@ -666,8 +781,8 @@ export default function Home() {
                         {node.type === 'folder' && (
                            <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-none" onClick={() => console.log('Add Folder to:', node.path)}>
-                                        <Folder className="h-3 w-3"/>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0.5 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-none" onClick={() => handleAddFolder(node)}>
+                                        <FolderPlus className="h-3 w-3"/>
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="font-mono text-xs">Add Folder</TooltipContent>
@@ -698,7 +813,9 @@ export default function Home() {
       }
       return undefined;
   };
-  const activeFileContent = activeTab ? findFileContent(fileTree, activeTab) : generatedCode;
+  const activeFileNode = activeTab ? findNodeInTree(fileTree, activeTab) : null;
+  const activeFileContent = activeFileNode?.content ?? (activeTab === null ? generatedCode : "// Select a file or generate code...");
+  const codeDisplayTitle = activeFileNode ? `// ${activeFileNode.path}` : (activeTab === null ? "// Generated_Output_Buffer" : "// IDE_File_Buffer");
 
 
   // Render Agent Tasks
@@ -740,14 +857,14 @@ export default function Home() {
                <Terminal className="h-6 w-6 text-primary hidden sm:block"/>
               <div>
                  <h1 className="text-lg md:text-xl font-bold text-primary font-mono chromatic-aberration-light" data-text="CodeSynth_IDE">CodeSynth_IDE</h1>
-                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// Multi-Agent Development Environment v0.5</p> {/* Version Bump */}
+                 <p className="text-xs md:text-sm text-muted-foreground font-mono">// Multi-Agent Development Environment v0.7</p> {/* Version Bump */}
              </div>
           </div>
            <div className="flex items-center space-x-3">
                {/* Settings Button */}
               <Tooltip>
                  <TooltipTrigger asChild>
-                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent/10 rounded-none" onClick={() => setIsSettingsOpen(true)}>
+                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent/10 rounded-none neon-glow" onClick={() => setIsSettingsOpen(true)}>
                          <Settings className="h-4 w-4" />
                          <span className="sr-only">Settings</span>
                      </Button>
@@ -790,20 +907,21 @@ export default function Home() {
                         <h2 className="font-mono text-sm text-secondary group-data-[collapsible=icon]:hidden transition-opacity duration-200 ease-linear">// Workspace</h2>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent/10 rounded-none hidden md:inline-flex" onClick={() => document.cookie = `${SETTINGS_STORAGE_KEY}=${JSON.stringify({...defaultSettings, ...JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}')})}; path=/; max-age=0` /* Conceptual: Needs proper toggle logic via useSidebar */}>
+                                {/* This button is conceptual for collapse, actual collapse is via useSidebar() if needed */}
+                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground p-1 hover:bg-accent/10 rounded-none hidden md:inline-flex neon-glow">
                                     <LayoutPanelLeft className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="right" className="font-mono text-xs">Collapse Sidebar</TooltipContent>
+                            <TooltipContent side="right" className="font-mono text-xs">Collapse Sidebar (Conceptual)</TooltipContent>
                          </Tooltip>
                      </div>
                     <SidebarInput placeholder="Search files..." className="group-data-[collapsible=icon]:hidden transition-opacity duration-200 ease-linear"/>
                 </SidebarHeader>
                 <SidebarContent className="p-0">
-                    <Accordion type="multiple" className="w-full">
+                    <Accordion type="multiple" defaultValue={["file-explorer", "ai-agents"]} className="w-full">
                         <AccordionItem value="file-explorer">
                              <AccordionTrigger className="px-2 py-1 hover:no-underline hover:bg-accent/5 text-xs font-mono text-muted-foreground">
-                                 // File_Explorer
+                                // File_Explorer
                              </AccordionTrigger>
                              <AccordionContent className="pb-0">
                                 {renderFileTree(fileTree)}
@@ -817,8 +935,8 @@ export default function Home() {
                              <AccordionContent className="pb-0 space-y-1 max-h-[300px] overflow-y-auto">
                                  {/* Conceptual Agent Toggles */}
                                  <div className="flex gap-1 px-2 py-1 group-data-[collapsible=icon]:hidden">
-                                     <Button size="sm" variant="ghost" className="flex-1 text-xs justify-start p-1 h-auto font-mono hover:bg-accent/10" onClick={() => setCodeAssistantChatVisible(prev => !prev)}><Bot className="mr-1 h-3 w-3"/>Code Asst.</Button>
-                                     <Button size="sm" variant="ghost" className="flex-1 text-xs justify-start p-1 h-auto font-mono hover:bg-accent/10" onClick={() => setProjectArchitectChatVisible(prev => !prev)}><Construction className="mr-1 h-3 w-3"/>Architect</Button>
+                                     <Button size="sm" variant="ghost" className="flex-1 text-xs justify-start p-1 h-auto font-mono hover:bg-accent/10" onClick={() => {setCodeAssistantChatVisible(prev => !prev); addAgentTask('Code Assistant', `Toggled visibility to ${!codeAssistantChatVisible}.`); }}><Bot className="mr-1 h-3 w-3"/>Code Asst.</Button>
+                                     <Button size="sm" variant="ghost" className="flex-1 text-xs justify-start p-1 h-auto font-mono hover:bg-accent/10" onClick={() => {setProjectArchitectChatVisible(prev => !prev); addAgentTask('Project Architect', `Toggled visibility to ${!projectArchitectChatVisible}.`); }}><Construction className="mr-1 h-3 w-3"/>Architect</Button>
                                  </div>
                                  {renderAgentTasks()}
                              </AccordionContent>
@@ -826,14 +944,14 @@ export default function Home() {
 
                          <AccordionItem value="integrations">
                              <AccordionTrigger className="px-2 py-1 hover:no-underline hover:bg-accent/5 text-xs font-mono text-muted-foreground">
-                                // System_Integrations
+                                // System_Integrations (Conceptual)
                              </AccordionTrigger>
                              <AccordionContent className="pb-0 px-2 space-y-1 group-data-[collapsible=icon]:hidden">
                                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><ShieldCheck className="h-3 w-3"/> Security Scan: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
                                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><TestTubeDiagonal className="h-3 w-3"/> MLOps Monitor: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
                                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><GitBranch className="h-3 w-3"/> Git Sync: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
                                 <p className="text-xs text-muted-foreground font-mono flex items-center gap-1"><CloudCog className="h-3 w-3"/> Deployments: <Badge variant="secondary" className="text-[9px] px-1 py-0 rounded-none">Offline</Badge></p>
-                                <p className="text-xs text-destructive/80 font-mono mt-1 italic">// (Integrations Not Implemented)</p>
+                                <p className="text-xs text-destructive/80 font-mono mt-1 italic">// (Most Integrations Not Yet Implemented)</p>
                              </AccordionContent>
                          </AccordionItem>
                     </Accordion>
@@ -841,7 +959,7 @@ export default function Home() {
                 </SidebarContent>
                  <SidebarFooter className="mt-auto p-2 border-t-2 border-border group-data-[collapsible=icon]:hidden transition-opacity duration-200 ease-linear">
                      {/* Footer actions like User profile, help, etc. */}
-                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs font-mono"><UserCheck className="mr-1 h-3 w-3"/> User Profile (N/A)</Button>
+                     <Button variant="ghost" size="sm" className="w-full justify-start text-xs font-mono" disabled><UserCheck className="mr-1 h-3 w-3"/> User Profile (N/A)</Button>
                  </SidebarFooter>
             </Sidebar>
 
@@ -856,7 +974,7 @@ export default function Home() {
                          &gt; Select_AI_Model:
                           <Tooltip>
                              <TooltipTrigger asChild>
-                                <button onClick={fetchAndCombineModels} disabled={isLoadingModels || isLoadingGeneration} className="ml-2 text-xs text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed p-0.5 rounded border border-transparent hover:border-accent">
+                                <button onClick={fetchAndCombineModels} disabled={isLoadingModels || isLoadingGeneration} className="ml-2 text-xs text-accent hover:text-accent/80 disabled:opacity-50 disabled:cursor-not-allowed p-0.5 rounded border border-transparent hover:border-accent neon-glow">
                                    <RefreshCw className={`h-3 w-3 ${isLoadingModels ? 'animate-spin' : ''}`} />
                                 </button>
                              </TooltipTrigger>
@@ -882,7 +1000,7 @@ export default function Home() {
                             disabled={isLoadingModels || allModels.length === 0 || isLoadingGeneration}
                           >
                              <SelectTrigger id="model-select" className="w-full bg-input border-border font-mono neon-glow focus:ring-ring focus:border-accent rounded-none text-foreground disabled:opacity-70 disabled:cursor-not-allowed">
-                                <SelectValue placeholder={allModels.filter(m => !m.unavailable).length === 0 ? "[No Models Available]" : "[Select Model...]"} />
+                                <SelectValue placeholder={allModels.filter(m => !m.unavailable && ((m.provider === 'Google AI' && defaultSettings.googleApiKey) || (m.provider === 'Ollama' && !modelError) || (m.provider === 'OpenRouter' && defaultSettings.openRouterApiKey) || (m.provider === 'Hugging Face' && defaultSettings.huggingFaceApiKey) )).length === 0 ? "[No Models Available]" : "[Select Model...]"} />
                              </SelectTrigger>
                              <SelectContent className="bg-popover border-border font-mono max-h-[400px] overflow-y-auto rounded-none shadow-[0_0_10px_hsla(var(--ring)/0.3)]">
                                {(Object.keys(groupedModels) as Array<keyof typeof groupedModels>).length > 0 ? (
@@ -1022,22 +1140,23 @@ export default function Home() {
                  {/* Right Column: Code Output & Actions */}
                  <div className="w-full lg:w-2/3 flex-grow flex flex-col overflow-hidden border border-border rounded-sm shadow-[inset_0_0_5px_hsla(var(--border)/0.2)] min-h-[300px] lg:min-h-0">
                    {/* Conceptual Tabs for Open Files */}
-                   <div className="flex border-b border-border flex-shrink-0">
+                   <div className="flex border-b border-border flex-shrink-0 overflow-x-auto">
                        {openFiles.map(fileId => {
-                            const file = fileTree.flatMap(f => f.children ? [f, ...f.children] : [f]).find(f => f.id === fileId); // Basic find
-                            const fileName = file?.name || fileId;
+                            const fileNode = findNodeInTree(fileTree, fileId);
+                            const fileName = fileNode?.name || fileId;
                             return (
                                 <Button
                                     key={fileId}
                                     variant={activeTab === fileId ? "secondary" : "ghost"}
                                     size="sm"
-                                    className={`h-7 px-2 py-0 text-xs font-mono rounded-none border-r border-border ${activeTab === fileId ? 'bg-secondary/80 text-secondary-foreground' : 'text-muted-foreground'}`}
+                                    className={`h-7 px-2 py-0 text-xs font-mono rounded-none border-r border-border whitespace-nowrap ${activeTab === fileId ? 'bg-secondary/80 text-secondary-foreground neon-glow' : 'text-muted-foreground hover:bg-accent/10'}`}
                                     onClick={() => {
                                         setActiveTab(fileId);
-                                        const content = file?.content || `// Content for ${fileName}`;
-                                        setGeneratedCode(content);
-                                        setValidationStatus("Loaded");
-                                        setValidationMessage(`Switched to tab: ${fileName}`);
+                                        if (fileNode) {
+                                            setGeneratedCode(fileNode.content || `// Content for ${fileNode.path}`);
+                                            setValidationStatus("Loaded");
+                                            setValidationMessage(`Switched to tab: ${fileName}`);
+                                        }
                                      }}
                                 >
                                     {fileName}
@@ -1045,32 +1164,35 @@ export default function Home() {
                                         e.stopPropagation(); // Prevent activating tab
                                         setOpenFiles(prev => prev.filter(id => id !== fileId));
                                         if (activeTab === fileId) {
-                                            // If closing active tab, switch to another or clear editor
-                                            const nextTab = openFiles.filter(id => id !== fileId)[0];
-                                            setActiveTab(nextTab || null);
-                                            const nextFile = nextTab ? fileTree.flatMap(f => f.children ? [f, ...f.children] : [f]).find(f => f.id === nextTab) : null;
-                                            setGeneratedCode(nextFile?.content || (nextTab ? `// Content for ${nextFile?.name}` : "// Output buffer empty..."));
+                                            const nextOpenFiles = openFiles.filter(id => id !== fileId);
+                                            const nextTabId = nextOpenFiles[0];
+                                            setActiveTab(nextTabId || null);
+                                            if (nextTabId) {
+                                                const nextFileNode = findNodeInTree(fileTree, nextTabId);
+                                                setGeneratedCode(nextFileNode?.content || `// Content for ${nextFileNode?.name}`);
+                                            } else {
+                                                 setGeneratedCode("// Output buffer empty. Awaiting command...");
+                                                 setValidationStatus("Idle");
+                                            }
                                         }
                                     }}/>
                                 </Button>
                             );
                        })}
-                       {/* Add a default tab if needed, or show placeholder */}
                        {openFiles.length === 0 && (
-                            <div className="px-2 py-1 text-xs italic text-muted-foreground">// No files open</div>
+                            <div className="px-2 py-1 text-xs italic text-muted-foreground whitespace-nowrap">// No files open</div>
                        )}
                    </div>
 
                    <CodeDisplay
-                      code={activeFileContent || "// Select a file or generate code..."} // Display active file content or generated code
-                      title={`// ${activeTab ? fileTree.find(f => f.id === activeTab)?.path || 'Generated_Output_Buffer' : 'Generated_Output_Buffer'} //`}
-                      language="typescript" // Default, could be dynamic based on file extension
-                      isLoading={isLoadingGeneration && !activeTab} // Only show loading overlay if generating, not just switching tabs
+                      code={activeFileContent}
+                      title={codeDisplayTitle}
+                      language={activeFileNode?.name.split('.').pop() || "typescript"} // Infer language
+                      isLoading={isLoadingGeneration && activeTab === null} // Loading if generating and no file selected
                       containerClassName="flex-grow" // Make code display fill space
                    />
                    {/* Action Buttons */}
                    <div className="p-2 border-t border-border flex justify-end items-center gap-2 flex-shrink-0">
-                       {/* Placeholder for future actions like Deploy, Commit, etc. */}
                        <Tooltip>
                            <TooltipTrigger asChild>
                                <span tabIndex={0}>
@@ -1091,16 +1213,14 @@ export default function Home() {
                            </TooltipTrigger>
                            <TooltipContent side="top" className="font-mono text-xs">(Deployment Not Implemented)</TooltipContent>
                        </Tooltip>
-                       {/* Edit Button */}
                       <Tooltip>
                          <TooltipTrigger asChild>
-                           {/* Wrap button in span for Tooltip when disabled */}
                            <span tabIndex={isEditDisabled ? 0 : -1}>
                               <Button
                                 onClick={() => setIsEditPopupOpen(true)}
                                 disabled={isEditDisabled}
                                 className="btn-neon-secondary font-mono text-xs rounded-none px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-disabled={isEditDisabled} // For accessibility
+                                aria-disabled={isEditDisabled}
                               >
                                   <Pencil className="mr-1 h-3 w-3" />
                                   Edit_Code...
@@ -1108,7 +1228,7 @@ export default function Home() {
                             </span>
                          </TooltipTrigger>
                           <TooltipContent side="top" className="font-mono text-xs bg-popover text-popover-foreground border-border rounded-none max-w-[250px]">
-                             <p>{isEditDisabled && (!generatedCode || generatedCode === "// Output buffer empty. Awaiting command...") ? 'Generate code first to enable editing.' : isEditDisabled && isLoadingGeneration ? 'Wait for generation to finish.' : isEditDisabled && (!!generationError || validationStatus === "Failed") ? 'Cannot edit code with errors or validation failures.' : 'Edit the generated code with new instructions.'}</p>
+                             <p>{isEditDisabled && (!generatedCode || generatedCode === "// Output buffer empty. Awaiting command...") ? 'Generate code first to enable editing.' : isEditDisabled && isLoadingGeneration ? 'Wait for generation to finish.' : isEditDisabled && (!!generationError || validationStatus === "Failed") ? 'Cannot edit code with errors or validation failures.' : 'Edit the current code with new instructions.'}</p>
                          </TooltipContent>
                       </Tooltip>
                     </div>
@@ -1117,7 +1237,7 @@ export default function Home() {
 
                  {/* Footer */}
                  <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-                 [ CodeSynth IDE v0.5 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
+                 [ CodeSynth IDE v0.7 | Active Providers: {getProviderNames(allModels)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                </footer>
              </SidebarInset>
         </div>
@@ -1126,7 +1246,7 @@ export default function Home() {
        {/* Edit Popup Modal */}
        {isEditPopupOpen && (
          <EditPopup
-           initialCode={generatedCode}
+           initialCode={activeFileContent} // Pass current buffer content
            onSubmit={handleEditSubmit}
            onClose={() => setIsEditPopupOpen(false)}
            isLoading={isLoadingGeneration}
@@ -1135,7 +1255,6 @@ export default function Home() {
        )}
 
        {/* Settings Panel Component */}
-       {/* Pass fetchAndCombineModels to SettingsPanel so it can trigger a refresh on save */}
        {isSettingsOpen && <SettingsPanel onClose={() => {setIsSettingsOpen(false); fetchAndCombineModels();}} />}
     </div>
   );
@@ -1144,8 +1263,17 @@ export default function Home() {
 // Helper function to get unique provider names from the model list (only counts AVAILABLE providers)
 function getProviderNames(models: CombinedModel[]): string {
     if (!models || models.length === 0) return "None Loaded";
-    // Filter out unavailable models first
-    const availableModels = models.filter(m => !m.unavailable);
+
+    // Filter models based on actual availability (plugin AND key if applicable)
+    const appSettings = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || JSON.stringify(defaultSettings)) as AppSettings : defaultSettings;
+    const availableModels = models.filter(m => !m.unavailable &&
+      ((m.provider === 'Google AI' && !!appSettings.googleApiKey) ||
+       (m.provider === 'OpenRouter' && !!appSettings.openRouterApiKey && !POTENTIAL_CLOUD_MODELS.find(pm => pm.id === m.id)?.unavailable) ||
+       (m.provider === 'Hugging Face' && !!appSettings.huggingFaceApiKey && !POTENTIAL_CLOUD_MODELS.find(pm => pm.id === m.id)?.unavailable) ||
+       (m.provider === 'Ollama' && (modelError === null || !modelError.includes('Failed to connect'))) // More robust check for Ollama
+      )
+    );
+
     if (availableModels.length === 0) return "None Available";
 
     const providers = new Set(availableModels.map(m => m.provider));

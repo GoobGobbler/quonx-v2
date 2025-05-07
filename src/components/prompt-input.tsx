@@ -73,7 +73,7 @@ export function PromptInput({
       <Button
         type="submit"
         disabled={isButtonDisabled}
-        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 flex-shrink-0" // Added flex-shrink-0
+        className="w-full sm:w-auto btn-neon font-mono text-sm rounded-none px-4 py-1.5 flex-shrink-0" // Added flex-shrink-0 and btn-neon
       >
         {isLoading ? (
           <>
