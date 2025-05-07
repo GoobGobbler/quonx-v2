@@ -24,7 +24,6 @@ import { listLocalOllamaModels, type OllamaModel as ClientOllamaModel } from '@/
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -33,6 +32,7 @@ import { generateCodeFromPrompt, type FileObject } from '@/ai/flows/generate-cod
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarRail, SidebarSeparator, SidebarTrigger, useSidebar, SidebarProvider } from "@/components/ui/sidebar"; // Added SidebarProvider import
+import { Separator } from "@/components/ui/separator"; // Added Separator import
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,7 +120,7 @@ export default function Home() {
     const [ollamaModels, setOllamaModels] = useState<ClientOllamaModel[]>([]);
     const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
     const { toast } = useToast();
-    const [modelError, setModelError] = useState<string | null>(null);
+    const [_modelError, setModelError] = useState<string | null>(null); // Renamed to avoid conflict
     const [showSettingsPanel, setShowSettingsPanel] = useState(false);
 
     const [validationStatus, setValidationStatus] = useState<string>("VALIDATION_OK");
@@ -251,7 +251,7 @@ export default function Home() {
                 const firstOllama = combined.find(m => m.provider === 'Ollama' && !m.unavailable);
                 const firstGoogle = combined.find(m => m.provider === 'Google AI' && !m.unavailable);
                 
-                if (firstOllama && (!modelError || (!modelError.includes("Failed to connect") && !modelError.includes("Ollama Base URL is not configured")))) {
+                if (firstOllama && (!_modelError || (!_modelError.includes("Failed to connect") && !_modelError.includes("Ollama Base URL is not configured")))) {
                     setSelectedModelId(firstOllama.id);
                 } else if (firstGoogle) {
                     setSelectedModelId(firstGoogle.id);
@@ -265,7 +265,7 @@ export default function Home() {
         }
         console.log(`[page] Combined model list updated. Total models: ${combined.length}. Selected: ${selectedModelId}`);
 
-    }, [ollamaModels, appSettings.googleApiKey, appSettings.openRouterApiKey, appSettings.huggingFaceApiKey, selectedModelId, modelError, appSettings.ollamaBaseUrl]); // Added ollamaBaseUrl dependency
+    }, [ollamaModels, appSettings.googleApiKey, appSettings.openRouterApiKey, appSettings.huggingFaceApiKey, selectedModelId, _modelError, appSettings.ollamaBaseUrl]); // Added ollamaBaseUrl dependency
 
     const handleCodeGeneration = async (currentPrompt?: string) => {
         const promptToUse = typeof currentPrompt === 'string' ? currentPrompt : prompt;
@@ -448,7 +448,7 @@ export default function Home() {
 
         switch (provider) {
             case 'Ollama':
-                return <HardDrive className={cn(baseClasses, "text-secondary", modelError && modelError.toLowerCase().includes("failed to connect") ? commonUnavailableClasses : "")} title={modelError && modelError.toLowerCase().includes("failed to connect") ? `Ollama (Connection Error)` : `Ollama (Local)`} />;
+                return <HardDrive className={cn(baseClasses, "text-secondary", _modelError && _modelError.toLowerCase().includes("failed to connect") ? commonUnavailableClasses : "")} title={_modelError && _modelError.toLowerCase().includes("failed to connect") ? `Ollama (Connection Error)` : `Ollama (Local)`} />;
             case 'Google AI':
                 return <BrainCircuit className={cn(baseClasses, "text-primary")} title="Google AI" />;
             case 'OpenRouter':
@@ -757,11 +757,11 @@ export default function Home() {
                                         </SelectItem>
                                     )) : (
                                          <SelectItem value="no-models" disabled className="py-1 px-2">
-                                            {modelError ? "Error loading models" : "No models available or loading..."}
+                                            {_modelError ? "Error loading models" : "No models available or loading..."}
                                         </SelectItem>
                                     )}
                                 </SelectGroup>
-                                {modelError && <p className="text-destructive text-xs p-2">{modelError}</p>}
+                                {_modelError && <p className="text-destructive text-xs p-2">{_modelError}</p>}
                             </SelectContent>
                         </Select>
                         <TooltipProvider delayDuration={100}>
@@ -858,7 +858,7 @@ export default function Home() {
 
                 {/* Footer */}
                 <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-                 [ CodeSynth IDE v0.8 | Active Providers: {getProviderNames(allModels, modelError, appSettings, POTENTIAL_CLOUD_MODELS)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
+                 [ CodeSynth IDE v0.8 | Active Providers: {getProviderNames(allModels, _modelError, appSettings, POTENTIAL_CLOUD_MODELS)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                 </footer>
              </SidebarInset>
         </SidebarProvider>
