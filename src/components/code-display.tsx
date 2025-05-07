@@ -1,52 +1,84 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Check, Loader2 } from "lucide-react";
+import { Copy, Check, Loader2, FileCode2, Files } from "lucide-react"; // Added FileCode2, Files
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Use CJS path for the style as ESM path seems to cause resolution issues in Next.js
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils"; // Import cn for conditional classes
+import { cn } from "@/lib/utils";
+import type { FileObject } from '@/ai/flows/generate-code-from-prompt'; // Import FileObject type
+
+// Define a type for what can be displayed (single file or array of files)
+export type DisplayableFile = FileObject;
 
 interface CodeDisplayProps {
-  code: string;
-  title?: string;
-  language?: string;
+  files: DisplayableFile | DisplayableFile[] | null; // Can be a single file, an array, or null
+  activeFilePath?: string | null; // Path of the file to display if `files` is an array
   isLoading?: boolean;
-  containerClassName?: string; // Allow passing container classes
+  containerClassName?: string;
 }
 
 const PLACEHOLDER_CODE = "// Output buffer empty. Execute generation command or select a file...";
 const LOADING_CODE = "// Initializing output buffer...";
+const MULTIPLE_FILES_SUMMARY = (count: number) => `// ${count} files generated. Select a file from the explorer to view its content.`;
 
 export function CodeDisplay({
-    code,
-    title = "// Generated_Code_Buffer //",
-    language = "typescript",
+    files,
+    activeFilePath,
     isLoading = false,
     containerClassName
 }: CodeDisplayProps) {
   const { toast } = useToast();
   const [hasCopied, setHasCopied] = useState(false);
-  // No need for displayCode state, directly use `code` prop which will be updated by parent
   const [currentYear, setCurrentYear] = useState<number | null>(null);
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
   }, []);
 
+  // Determine which file to display
+  const currentFileToDisplay: DisplayableFile | null = React.useMemo(() => {
+    if (!files) return null;
+    if (Array.isArray(files)) {
+      if (activeFilePath) {
+        return files.find(f => f.filePath === activeFilePath) || files[0] || null;
+      }
+      return files[0] || null; // Default to first file if no active path and files is array
+    }
+    return files; // If it's a single FileObject
+  }, [files, activeFilePath]);
+
+  const codeToDisplay = currentFileToDisplay?.content || (Array.isArray(files) && files.length > 0 ? MULTIPLE_FILES_SUMMARY(files.length) : PLACEHOLDER_CODE);
+  const displayTitle = isLoading 
+    ? "// Processing..." 
+    : currentFileToDisplay?.filePath 
+      ? `// ${currentFileToDisplay.filePath} //` 
+      : Array.isArray(files) && files.length > 0 
+        ? "// Multi-File Output //" 
+        : "// IDE_Buffer //";
+  
+  const language = currentFileToDisplay?.filePath?.split('.').pop() || "plaintext";
 
   const handleCopy = () => {
-    if (!code || isLoading || code === PLACEHOLDER_CODE || code === LOADING_CODE) return;
-    navigator.clipboard.writeText(code).then(() => {
+    if (!currentFileToDisplay?.content || isLoading || currentFileToDisplay.content === PLACEHOLDER_CODE || currentFileToDisplay.content === LOADING_CODE || currentFileToDisplay.content.startsWith("// Multiple files generated")) {
+        toast({
+            variant: "destructive",
+            title: "SYS: Nothing to Copy",
+            description: "No specific file content is active to copy.",
+            className: "font-mono",
+        });
+        return;
+    }
+    navigator.clipboard.writeText(currentFileToDisplay.content).then(() => {
       setHasCopied(true);
       toast({
         title: "SYS: Clipboard Write OK",
-        description: "Code copied successfully.",
-        className: "font-mono border-primary text-primary", // Terminal style
+        description: `Content of ${currentFileToDisplay.filePath} copied.`,
+        className: "font-mono border-primary text-primary",
       });
     }).catch(err => {
       console.error('Failed to copy code: ', err);
@@ -54,7 +86,7 @@ export function CodeDisplay({
         variant: "destructive",
         title: "ERR: Clipboard Write Failed",
         description: "Could not copy code.",
-        className: "font-mono", // Terminal style
+        className: "font-mono",
       });
     });
   };
@@ -67,23 +99,23 @@ export function CodeDisplay({
       return () => clearTimeout(timer);
     }
   }, [hasCopied]);
-
-  const displayTitle = title || (isLoading ? "// Processing..." : "// IDE_Buffer");
-  const codeToDisplay = code || PLACEHOLDER_CODE;
+  
   const lineCount = codeToDisplay.split('\n').length;
   const charCount = codeToDisplay.length;
-
 
   return (
     <div className={cn("h-full flex flex-col bg-background border-border shadow-inner overflow-hidden rounded-none", containerClassName)}>
       <div className="flex flex-row items-center justify-between pb-1 px-3 pt-2 border-b border-border flex-shrink-0">
-        <h2 className="text-sm font-semibold font-mono text-primary truncate" title={displayTitle}>{displayTitle}</h2>
+        <div className="flex items-center text-sm font-semibold font-mono text-primary truncate" title={displayTitle}>
+            {Array.isArray(files) && files.length > 1 && !currentFileToDisplay ? <Files className="h-4 w-4 mr-1.5" /> : <FileCode2 className="h-4 w-4 mr-1.5" />}
+            {displayTitle}
+        </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={handleCopy}
           aria-label="Copy code"
-          disabled={!code || isLoading || hasCopied || code === PLACEHOLDER_CODE || code === LOADING_CODE}
+          disabled={!currentFileToDisplay?.content || isLoading || hasCopied || currentFileToDisplay.content === PLACEHOLDER_CODE || currentFileToDisplay.content === LOADING_CODE || currentFileToDisplay.content.startsWith(MULTIPLE_FILES_SUMMARY(0).substring(0,10))} // Check prefix
           className="text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed w-6 h-6 p-1 rounded-none border border-transparent hover:border-accent neon-glow"
         >
           {isLoading ? (
@@ -97,7 +129,7 @@ export function CodeDisplay({
       </div>
 
       <div className="flex-grow p-0 overflow-hidden relative">
-        {isLoading && ( // Show loading overlay ONLY if isLoading is true
+        {isLoading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
              <p className="text-muted-foreground font-mono text-center">// Processing AI request...</p>
@@ -109,9 +141,9 @@ export function CodeDisplay({
           </div>
         )}
         <ScrollArea className="h-full">
-          {codeToDisplay === LOADING_CODE && !isLoading ? ( // Show placeholder if code is null/undefined but not actively loading
+          {codeToDisplay === PLACEHOLDER_CODE || codeToDisplay === LOADING_CODE || codeToDisplay.startsWith(MULTIPLE_FILES_SUMMARY(0).substring(0,10)) ? (
              <div className="p-4 text-muted-foreground font-mono text-sm h-full flex items-center justify-center">
-               <p>{PLACEHOLDER_CODE}</p>
+               <p>{codeToDisplay}</p>
              </div>
            ) : (
              <SyntaxHighlighter
@@ -144,10 +176,10 @@ export function CodeDisplay({
              <>
                <Loader2 className="h-3 w-3 animate-spin mr-2" /> Transmitting...
              </>
-           ) : code && code !== PLACEHOLDER_CODE && code !== LOADING_CODE ? (
-               `LN: ${lineCount} | CH: ${charCount} | LANG: ${language}`
+           ) : codeToDisplay && codeToDisplay !== PLACEHOLDER_CODE && codeToDisplay !== LOADING_CODE && !codeToDisplay.startsWith(MULTIPLE_FILES_SUMMARY(0).substring(0,10)) ? (
+               `LN: ${lineCount} | CH: ${charCount} | LANG: ${language} ${currentFileToDisplay?.filePath ? `| PATH: ${currentFileToDisplay.filePath}` : ''}`
            ) : (
-               "// Awaiting command or file selection..."
+               Array.isArray(files) && files.length > 0 ? `// ${files.length} files generated. Select one to view details.` : "// Awaiting command or file selection..."
            )
          }
        </div>
