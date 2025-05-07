@@ -26,76 +26,79 @@ export function cn(...inputs: ClassValue[]) {
 export function getProviderNames(
   allModels: UtilCombinedModel[],
   ollamaError: string | null,
-  appSettings: AppSettings, // This parameter was missing in the call
-  potentialCloudModels: UtilModelMetadata[] // This parameter was missing in the call
+  appSettings: AppSettings,
+  potentialCloudModels: UtilModelMetadata[]
 ): string {
   const providers = new Set<string>();
+  const warnings = new Set<string>();
 
   const hasGoogleKey = !!appSettings.googleApiKey;
-  // Ensure OpenRouter and HuggingFace checks use the 'unavailable' flag from POTENTIAL_CLOUD_MODELS
+  const hasOpenRouterKey = !!appSettings.openRouterApiKey;
+  const hasHuggingFaceKey = !!appSettings.huggingFaceApiKey;
+  const ollamaConfigured = !!appSettings.ollamaBaseUrl;
+
   const openRouterMeta = potentialCloudModels.find(pm => pm.provider === 'OpenRouter');
   const huggingFaceMeta = potentialCloudModels.find(pm => pm.provider === 'Hugging Face');
 
-  const hasOpenRouterKey = !!appSettings.openRouterApiKey;
-  const hasHuggingFaceKey = !!appSettings.huggingFaceApiKey;
-
+  const isOpenRouterPluginAvailable = !openRouterMeta?.unavailable;
+  const isHuggingFacePluginAvailable = !huggingFaceMeta?.unavailable;
 
   // Check Google AI
   if (hasGoogleKey && allModels.some(m => m.provider === 'Google AI' && !m.unavailable)) {
-    providers.add('Google AI');
+    providers.add('Google');
+  } else if (hasGoogleKey) {
+    warnings.add("Google(No models)");
   }
 
   // Check OpenRouter
-  if (hasOpenRouterKey && !openRouterMeta?.unavailable && allModels.some(m => m.provider === 'OpenRouter' && !m.unavailable)) {
+  if (hasOpenRouterKey && isOpenRouterPluginAvailable && allModels.some(m => m.provider === 'OpenRouter' && !m.unavailable)) {
     providers.add('OpenRouter');
+  } else if (hasOpenRouterKey && !isOpenRouterPluginAvailable) {
+    warnings.add("OR(Plugin X)");
+  } else if (hasOpenRouterKey && isOpenRouterPluginAvailable) {
+    warnings.add("OR(No models)");
   }
 
   // Check Hugging Face
-  if (hasHuggingFaceKey && !huggingFaceMeta?.unavailable && allModels.some(m => m.provider === 'Hugging Face' && !m.unavailable)) {
-    providers.add('Hugging Face');
+  if (hasHuggingFaceKey && isHuggingFacePluginAvailable && allModels.some(m => m.provider === 'Hugging Face' && !m.unavailable)) {
+    providers.add('HF');
+  } else if (hasHuggingFaceKey && !isHuggingFacePluginAvailable) {
+    warnings.add("HF(Plugin X)");
+  } else if (hasHuggingFaceKey && isHuggingFacePluginAvailable) {
+    warnings.add("HF(No models)");
   }
-  
+
   // Check Ollama
-  const ollamaConfigured = appSettings.ollamaBaseUrl && !ollamaError?.includes("Ollama Base URL is not configured");
-  const ollamaCriticallyFailed = ollamaError && (ollamaError.toLowerCase().includes("failed to connect") || ollamaError.toLowerCase().includes("connection refused") || ollamaError.includes("Ollama Base URL is not configured"));
-  
+  const ollamaCriticallyFailed = ollamaError && (ollamaError.toLowerCase().includes("failed to connect") || ollamaError.toLowerCase().includes("connection refused") || ollamaError.includes("ollama base url is not configured"));
   if (ollamaConfigured && !ollamaCriticallyFailed && allModels.some(m => m.provider === 'Ollama' && !m.unavailable)) {
       providers.add('Ollama');
+  } else if (ollamaConfigured && ollamaCriticallyFailed) {
+      warnings.add("Ollama(Offline)");
+  } else if (ollamaConfigured && ollamaError && !ollamaCriticallyFailed) {
+      warnings.add("Ollama(Err)"); // Error loading models, but connected
+  } else if (ollamaConfigured && !ollamaError && !allModels.some(m => m.provider === 'Ollama')) {
+       warnings.add("Ollama(No models)");
+  } else if (!ollamaConfigured){
+        // No warning if Ollama just isn't configured
   }
 
 
-  if (providers.size === 0) {
-    if (ollamaError) {
-        if (ollamaError.includes("Ollama Base URL is not configured")) return "Ollama Not Configured";
-        if (ollamaError.toLowerCase().includes("failed to connect") || ollamaError.toLowerCase().includes("connection refused")) return "Ollama Connection Error";
-        if (ollamaError.toLowerCase().includes("failed to fetch ollama models")) return "Ollama Model Load Error";
-        return "Ollama Error";
-    }
-    if (!hasGoogleKey && !hasOpenRouterKey && !hasHuggingFaceKey && !ollamaConfigured) {
-        return "None Configured";
-    }
-    // If keys are present but associated plugins are marked unavailable
-    let unavailableMessages = [];
-    if (hasOpenRouterKey && openRouterMeta?.unavailable) unavailableMessages.push("OpenRouter (Plugin Unavailable)");
-    if (hasHuggingFaceKey && huggingFaceMeta?.unavailable) unavailableMessages.push("HF (Plugin Unavailable)");
-    if (unavailableMessages.length > 0) return unavailableMessages.join(', ') + ( (hasGoogleKey || ollamaConfigured) ? " + No other models" : "");
-
-    return "No Models Available"; 
+  if (providers.size === 0 && warnings.size === 0) {
+      if (!hasGoogleKey && !hasOpenRouterKey && !hasHuggingFaceKey && !ollamaConfigured) {
+          return "None Configured";
+      }
+      return "No Active Providers"; // Keys might be present, but no models/connection
   }
 
-  let result = Array.from(providers).sort().join(', ');
-  
-  // Append warnings for configured but unavailable plugins if they weren't added to active providers
-  if (hasOpenRouterKey && openRouterMeta?.unavailable && !providers.has('OpenRouter')) {
-      result += (result ? ", " : "") + "OpenRouter (Plugin Unavailable)";
-  }
-  if (hasHuggingFaceKey && huggingFaceMeta?.unavailable && !providers.has('Hugging Face')) {
-      result += (result ? ", " : "") + "HF (Plugin Unavailable)";
-  }
-  
-  if (ollamaConfigured && !ollamaCriticallyFailed && !providers.has('Ollama') && ollamaError && ollamaError.toLowerCase().includes("failed to fetch ollama models")) {
-     result += (result ? ", " : "") + "Ollama (Model Load Error)";
-  }
+  const activeProviders = Array.from(providers).sort().join(', ');
+  const warningText = Array.from(warnings).sort().join(', ');
 
-  return result || "Status Unknown";
+  if (activeProviders && warningText) {
+      return `${activeProviders} | Warn: ${warningText}`;
+  } else if (activeProviders) {
+      return activeProviders;
+  } else {
+      // Only warnings exist
+      return `Warn: ${warningText}`;
+  }
 }

@@ -20,14 +20,14 @@ import type { ModelReference } from 'genkit/model'; // Use type import
 const KNOWN_PROVIDER_PREFIXES = ['ollama/', 'googleai/']; // OpenRouter and HuggingFace are handled as unavailable
 
 const GenerateCodeFromPromptInputSchema = z.object({
-  prompt: z.string().describe('The prompt describing the application or code to build. Include details like language, framework, desired file structure (e.g., "a Next.js component named MyButton.tsx and its CSS module MyButton.module.css"), features, and any specific requirements (e.g., "generate unit tests", "use TypeScript").'),
+  prompt: z.string().describe('The prompt describing the application or code to build. Include details like language, framework, desired file structure (e.g., "a Next.js component named MyButton.tsx and its CSS module MyButton.module.css"), features, and any specific requirements (e.g., "generate unit tests", "use TypeScript"). For multi-file projects, clearly state the desired files and their paths.'),
   previousCode: z.string().optional().describe('The content of the currently active file or a relevant code snippet from a previous successful build, if any. This provides context for edits or additions. For multi-file generation, this might be less relevant unless editing a specific file.'),
   modelName: z.string().describe('The fully qualified name of the model to use (e.g., "ollama/llama3", "googleai/gemini-1.5-flash-latest").'),
 });
 export type GenerateCodeFromPromptInput = z.infer<typeof GenerateCodeFromPromptInputSchema>;
 
 const FileObjectSchema = z.object({
-  filePath: z.string().describe("The full path of the generated file, including the filename and extension (e.g., 'src/components/Button.tsx', 'public/styles/main.css')."),
+  filePath: z.string().describe("The full path of the generated file, including the filename and extension (e.g., 'src/components/Button.tsx', 'public/styles/main.css'). Ensure correct casing and extensions."),
   content: z.string().describe("The complete content of the generated file."),
 });
 export type FileObject = z.infer<typeof FileObjectSchema>;
@@ -40,13 +40,15 @@ export type GenerateCodeFromPromptOutput = z.infer<typeof GenerateCodeFromPrompt
 
 // --- Future Enhancements / TODOs ---
 // - Implement robust file tree generation logic (deeper validation, specific interactions for file explorer).
-// - Add specific agents (Code Assistant, Project Architect) as distinct flows or tools with tailored prompts.
-// - Integrate long-term memory/context beyond just the last successful code.
-// - Add MLOps integration (logging experiment details, performance metrics).
-// - Integrate security scanning (e.g., Snyk) results or linters as tools/context.
-// - Support multimodal input (images, sketches, sketches).
-// - Implement robust validation pipeline (syntax, deps, tests) before returning code.
-// - Add Firebase/Cloud deployment integration steps.
+// - Add specific agents (Code Assistant, Project Architect, Security Analyst, Firebase Expert) as distinct flows or tools with tailored prompts and capabilities.
+// - Integrate long-term memory/context beyond just the last successful code (e.g., using a vector database for project context).
+// - Add MLOps integration (logging experiment details, performance metrics, model versioning for generated code).
+// - Integrate security scanning (e.g., Snyk, OWASP ZAP) results or linters as tools/context.
+// - Support multimodal input (images for UI scaffolding, sketches for diagrams, voice for prompts).
+// - Implement robust validation pipeline (syntax checks, dependency resolution, headless compile/run tests, linting) before returning code.
+// - Add Firebase/Cloud deployment integration steps (e.g., generating deployment scripts, interacting with Firebase CLI or Google Cloud SDKs).
+// - Add advanced debugging and profiling tool integration placeholders.
+// - Plugin marketplace and SDK conceptual placeholders.
 // ------------------------------------
 
 /**
@@ -60,6 +62,7 @@ export type GenerateCodeFromPromptOutput = z.infer<typeof GenerateCodeFromPrompt
  */
 export async function generateCodeFromPrompt(input: GenerateCodeFromPromptInput): Promise<GenerateCodeFromPromptOutput> {
   console.log(`Generating code with model: ${input.modelName}. Prompt: "${input.prompt.substring(0,100)}..."`);
+  // TODO: Add MLOps logging for experiment tracking (input prompt, model, settings, output hash/summary)
   return generateCodeFromPromptFlow(input);
 }
 
@@ -71,17 +74,17 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert AI software developer integrated into an IDE. Your task is to generate high-quality, secure, and maintainable code based *strictly* on the user's prompt and any provided previous code context.
 
 **Instructions:**
-1.  **Adhere Strictly to Prompt:** Generate code that directly addresses the user's request. Pay close attention to specified languages, frameworks, file names, project structures, and features (e.g., unit tests, styling).
-2.  **File Structure:**
-    *   If the prompt implies a project structure or multiple files (e.g., "create a React component with a CSS module", "scaffold a Node.js Express API with routes and models"), generate all necessary files.
-    *   Each file must be returned as an object with "filePath" (e.g., "src/components/MyComponent.tsx") and "content" (the full file content).
+1.  **Adhere Strictly to Prompt:** Generate code that directly addresses the user's request. Pay close attention to specified languages, frameworks, file names, project structures, and features (e.g., unit tests, styling, security considerations).
+2.  **File Structure (Critical):**
+    *   If the prompt implies a project structure or multiple files (e.g., "create a React component with a CSS module", "scaffold a Node.js Express API with routes and models", "a Next.js page at 'app/dashboard/page.tsx' and its layout 'app/dashboard/layout.tsx'"), you MUST generate ALL necessary files.
+    *   Each file MUST be returned as an object with "filePath" (e.g., "src/components/MyComponent.tsx", "app/api/users/route.ts") and "content" (the full file content). Ensure filePaths are accurate and include correct extensions.
     *   If the prompt is for a single snippet or modification to existing code, return a single file object, using a relevant filePath (e.g., "snippet.txt" or the original file's path if editing).
-3.  **Completeness:** Provide complete, runnable code. Use standard code formatting.
-4.  **Clarity & Best Practices:** Prioritize clear, efficient, and secure coding practices suitable for production environments.
+3.  **Completeness:** Provide complete, runnable code where appropriate. Use standard code formatting. Include necessary imports, exports, and basic boilerplate.
+4.  **Clarity & Best Practices:** Prioritize clear, efficient, and secure coding practices suitable for production environments. Add comments for complex logic if helpful.
 5.  **Context Usage (Previous Code):**
     *   If 'Previous Code' is provided, it represents the content of the *currently active file* or a relevant snippet. Use it as context for modifications or additions specific to *that file/context* if the prompt implies an edit.
     *   If the prompt asks for a new project or files unrelated to the previous code, or if no previous code is given, generate new code/files from scratch based solely on the prompt.
-6.  **Output Format:** Return *only* a JSON object matching the output schema, containing a "files" array. Each element in "files" must be an object with "filePath" and "content". Do not include explanatory text outside the code content itself unless explicitly requested in the prompt (in which case, it should be part of the file content, e.g., in comments).
+6.  **Output Format (Strict):** Return *ONLY* a JSON object matching the output schema, containing a "files" array. Each element in "files" must be an object with "filePath" and "content". Do not include any explanatory text, markdown formatting, or any other text outside the JSON structure itself.
 
 **User Prompt:**
 {{{prompt}}}
@@ -156,6 +159,8 @@ const generateCodeFromPromptFlow = ai.defineFlow(
     const promptInput = {
         prompt: input.prompt,
         previousCode: input.previousCode,
+        // TODO: Add long-term context/memory here if implemented
+        // projectContext: await getProjectContextSummary(input.projectId), // Example
     };
 
     // --- Execute Prompt ---
@@ -190,20 +195,46 @@ const generateCodeFromPromptFlow = ai.defineFlow(
 
         console.log(`Received ${output.files.length} file(s) from model ${input.modelName}. First file path: ${output.files[0]?.filePath}`);
         
-        // TODO: Implement post-generation validation pipeline here (syntax, linting, etc. for each file) before returning.
+        // TODO: Implement post-generation validation pipeline here (syntax, linting, security, tests) before returning.
         // For example:
-        // for (const file of output.files) {
-        //   const validationResult = await runValidationPipeline(file.content, { language: file.filePath.split('.').pop() });
-        //   if (!validationResult.success) {
-        //     throw new Error(`Generated code for ${file.filePath} failed validation: ${validationResult.message}`);
-        //   }
+        // const validationResults = await Promise.all(output.files.map(file => 
+        //   runValidationPipeline(file.content, { language: file.filePath.split('.').pop(), filePath: file.filePath })
+        // ));
+        // const failedValidations = validationResults.filter(r => !r.success);
+        // if (failedValidations.length > 0) {
+        //   throw new Error(`Generated code failed validation: ${failedValidations.map(f => `${f.filePath}: ${f.message}`).join(', ')}`);
         // }
 
+        // TODO: Add MLOps logging for successful generation (e.g., output summary, tokens used if available)
         return output as GenerateCodeFromPromptOutput; // Ensure type cast if direct assignment
 
     } catch (generationError: any) {
         console.error(`Error during prompt execution with model ${input.modelName}:`, generationError);
+        // TODO: Add MLOps logging for failed generation
         throw new Error(`AI generation failed using model ${input.modelName}. Reason: ${generationError.message || 'Unknown error'}`);
     }
   }
 );
+
+// Placeholder for multimodal input processing - this would likely be a separate flow or integrated tool
+// async function processMultimodalInput(input: { text?: string; imageDataUri?: string; sketchDataUri?: string }) {
+//   // Logic to handle image/sketch data, possibly by passing it to a vision-capable model
+//   // or by using a tool to analyze the image and convert it to a text description for the main LLM.
+//   let combinedPrompt = input.text || "";
+//   if (input.imageDataUri) {
+//     // Example: combinedPrompt += `\n\nImage context: {{media url=${input.imageDataUri}}}`;
+//     // Or use a vision model to get a description of the image first.
+//   }
+//   return combinedPrompt;
+// }
+
+// Placeholder for robust validation pipeline
+// async function runValidationPipeline(code: string, options: { language?: string, filePath?: string }): Promise<{success: boolean; message?: string; filePath?: string}> {
+//   // 1. Syntax Check (e.g., using a parser or lightweight linter)
+//   // 2. Dependency Resolution (conceptual for now, could involve checking import statements)
+//   // 3. Security Scan (e.g., regex for common vulnerabilities, or integrate a lightweight scanner tool)
+//   // 4. Headless Compile/Run Tests (if test generation is also implemented and tests are provided/generated)
+//   console.log(`Validating ${options.filePath || 'code snippet'} for language ${options.language || 'unknown'}...`);
+//   // Simulate validation success
+//   return { success: true, filePath: options.filePath };
+// }

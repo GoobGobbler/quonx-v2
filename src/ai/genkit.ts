@@ -77,8 +77,8 @@ console.log("Genkit: Ollama models can be accessed dynamically (e.g., 'ollama/ll
 // Configure Genkit with the dynamically added plugins
 configureGenkit({
   plugins: plugins,
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
+  logLevel: 'debug', // Set desired log level (debug, info, warn, error)
+  enableTracingAndMetrics: true, // Enable tracing for observability (MLOps integration point)
 });
 
 // Export the configured ai object globally using Genkit 1.x pattern
@@ -86,17 +86,22 @@ export const ai = genkit();
 
 // --- Define Model References (Examples - Adjust as needed) ---
 
+// Ollama models are referenced dynamically like: ai.model('ollama/llama3')
+// No need to define specific variables here unless for frequent use aliases.
+
 // Google AI Models (available if GOOGLE_API_KEY is set)
 export const geminiFlash = ai.model('googleai/gemini-1.5-flash-latest');
 export const geminiPro = ai.model('googleai/gemini-1.5-pro-latest');
-export const geminiProVision = ai.model('googleai/gemini-pro-vision');
+export const geminiProVision = ai.model('googleai/gemini-pro-vision'); // Vision model example
 
-// OpenRouter and Hugging Face models are commented out as their plugins are marked unavailable.
+// Examples of how OpenRouter and Hugging Face models *would* be referenced if available and configured
 // export const openRouterDefault = ai.model('openrouter/auto');
 // export const openRouterClaudeHaiku = ai.model('openrouter/anthropic/claude-3-haiku');
 // export const hfCodeLlama = ai.model('huggingface/codellama/CodeLlama-7b-hf');
 
 console.log(`Genkit initialized with ${plugins.length} active plugin(s).`);
 if (plugins.length === 0) {
-    console.warn("Genkit: No cloud AI plugins were configured (e.g., Google AI due to missing API key). Ollama access is dynamic.");
+    console.warn("Genkit: No cloud AI plugins were configured due to missing API keys. Ollama access remains dynamic.");
 }
+if (!isOpenRouterPluginAvailable) console.warn("Genkit: OpenRouter models unavailable.");
+if (!isHuggingFacePluginAvailable) console.warn("Genkit: Hugging Face models unavailable.");

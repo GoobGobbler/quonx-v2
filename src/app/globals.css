@@ -10,101 +10,108 @@
 
 @layer base {
   :root {
-    /* Cool Muted 60s/70s Palette with Neon Accents - Dark Mode */
-    --background: 210 10% 12%;    /* Dark Charcoal/Desaturated Blue */
-    --foreground: 180 30% 85%;    /* Muted Teal/Cyan Text */
+    /* 70s/80s Sci-Fi Terminal Theme - Dark Mode */
+    /* Primary color: Neutral grays for a professional look. */
+    /* Secondary color: A calm teal (#008080) for interface elements. */
+    /* Accent: Electric purple (#7DF9FF according to prompt, interpreted as vibrant purple) for interactive elements and highlights. */
 
-    --card: 210 10% 18%;          /* Slightly Lighter Charcoal */
-    --card-foreground: 180 30% 85%; /* Muted Teal/Cyan */
+    --background: 220 6% 10%;    /* Neutral Dark Bluish-Gray */
+    --foreground: 220 10% 90%;   /* Neutral Light Gray */
 
-    --popover: 210 10% 15%;       /* Darker Popover */
-    --popover-foreground: 180 30% 90%; /* Slightly Brighter Muted Teal */
+    --card: 220 6% 13%;          /* Slightly Lighter Gray Card */
+    --card-foreground: 220 10% 90%; /* Neutral Light Gray Text on Card */
 
-    --primary: 45 80% 60%;        /* Bright Mustard Yellow (Neon Accent) */
-    --primary-foreground: 210 10% 5%;  /* Very Dark for contrast */
+    --popover: 220 6% 8%;       /* Darker Gray Popover */
+    --popover-foreground: 220 10% 90%; /* Neutral Light Gray Text on Popover */
 
-    --secondary: 180 60% 50%;    /* Strong Teal (Control Color) */
-    --secondary-foreground: 210 10% 95%; /* Almost White for contrast */
+    /* Teal (#008080) for interface elements -> maps to Shadcn's primary */
+    --primary: 180 70% 35%;        /* Calm Teal (darker for contrast) */
+    --primary-foreground: 180 20% 95%; /* Light text for Teal */
 
-    --muted: 210 8% 35%;          /* Muted Dark Gray/Blue */
-    --muted-foreground: 210 8% 65%; /* Lighter Muted Gray/Blue */
+    /* Neutral Grays for secondary elements */
+    --secondary: 220 5% 30%;     /* Neutral Gray for secondary buttons */
+    --secondary-foreground: 220 10% 80%; /* Lighter Gray text for secondary buttons */
 
-    --accent: 300 80% 65%;        /* Vibrant Magenta/Pink (Neon Highlight) */
-    --accent-foreground: 210 15% 5%; /* Very Dark for contrast */
+    --muted: 220 5% 25%;          /* Muted Dark Gray */
+    --muted-foreground: 220 8% 65%; /* Lighter Muted Gray */
+
+    /* Electric Purple for highlights -> maps to Shadcn's accent */
+    --accent: 275 80% 60%;        /* Vibrant Electric Purple */
+    --accent-foreground: 275 15% 95%; /* Very light text for Purple */
 
     --destructive: 0 70% 55%;       /* Muted Red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 180 30% 40%;        /* Muted Teal Border */
-    --input: 210 10% 22%;         /* Dark Input Background */
-    --ring: 45 90% 70%;           /* Bright Mustard Ring on focus */
+    --border: 220 5% 25%;        /* Neutral Gray Border */
+    --input: 220 5% 18%;         /* Dark Input Background */
+    --ring: 275 80% 65%;           /* Electric Purple for focus ring */
 
-    --chart-1: 180 60% 55%; /* Teal variations */
-    --chart-2: 45 80% 65%;  /* Mustard variations */
-    --chart-3: 300 70% 60%; /* Magenta variations */
-    --chart-4: 180 40% 35%; /* Darker Teal */
-    --chart-5: 45 60% 45%;  /* Darker Mustard */
+    --chart-1: 180 70% 45%; /* Teal variations */
+    --chart-2: 275 75% 70%; /* Purple variations */
+    --chart-3: 220 10% 60%; /* Gray variations */
+    --chart-4: 180 50% 25%; /* Darker Teal */
+    --chart-5: 275 60% 40%; /* Darker Purple */
 
-    --radius: 0.1rem; /* Sharper corners */
+    --radius: 0.1rem; /* Sharper corners for terminal look */
 
     /* Sidebar variables - Adjusting to new theme */
-    --sidebar-background: 210 10% 14%; /* Slightly darker sidebar */
-    --sidebar-foreground: 180 30% 80%; /* Muted Teal */
-    --sidebar-primary: 45 80% 60%;   /* Mustard */
-    --sidebar-primary-foreground: 210 10% 5%;
-    --sidebar-accent: 300 70% 60%;   /* Magenta */
-    --sidebar-accent-foreground: 210 15% 95%;
-    --sidebar-border: 180 30% 30%;   /* Darker Teal Border */
-    --sidebar-ring: 45 90% 70%;    /* Mustard Ring */
+    --sidebar-background: 220 6% 12%; /* Slightly darker sidebar */
+    --sidebar-foreground: 220 10% 85%; /* Neutral Light Gray */
+    --sidebar-primary: 180 70% 40%;   /* Teal for sidebar primary elements */
+    --sidebar-primary-foreground: 180 20% 95%;
+    --sidebar-accent: 275 75% 65%;   /* Purple for sidebar accents */
+    --sidebar-accent-foreground: 275 15% 95%;
+    --sidebar-border: 220 5% 22%;   /* Darker Gray Border for Sidebar */
+    --sidebar-ring: 275 80% 70%;    /* Purple Ring */
   }
 
-  /* Light mode (optional, example - could be a different vintage style) */
+  /* Light mode (optional, can be a different retro style or standard light) */
   .light {
-    /* Example: Warm Analog Light Theme */
-    --background: 35 30% 92%; /* Light Tan/Beige */
-    --foreground: 30 30% 20%; /* Dark Brown */
+    /* Example: A standard clean light theme, or another retro interpretation */
+    --background: 0 0% 98%;
+    --foreground: 220 10% 10%;
 
-    --card: 35 30% 88%;
-    --card-foreground: 30 30% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 10% 10%;
 
-    --popover: 35 30% 85%;
-    --popover-foreground: 30 30% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 10% 10%;
 
-    --primary: 20 90% 55%; /* Burnt Orange */
-    --primary-foreground: 35 30% 5%; /* Very Dark Brown */
+    --primary: 180 70% 40%; /* Teal */
+    --primary-foreground: 180 20% 5%;
 
-    --secondary: 90 30% 45%; /* Olive Green */
-    --secondary-foreground: 35 30% 95%;
+    --secondary: 220 5% 90%; /* Light Gray */
+    --secondary-foreground: 220 5% 20%;
 
-    --muted: 35 20% 80%;
-    --muted-foreground: 35 20% 40%;
+    --muted: 220 5% 93%;
+    --muted-foreground: 220 5% 45%;
 
-    --accent: 45 70% 60%; /* Mustard Yellow */
-    --accent-foreground: 35 30% 10%;
+    --accent: 275 80% 55%; /* Purple */
+    --accent-foreground: 275 15% 98%;
 
-    --destructive: 0 60% 50%;
+    --destructive: 0 80% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 35 30% 70%; /* Tan Border */
-    --input: 35 30% 85%;
-    --ring: 20 95% 60%; /* Burnt Orange Ring */
+    --border: 220 5% 85%;
+    --input: 220 5% 90%;
+    --ring: 275 80% 60%;
 
-    --chart-1: 90 30% 50%; /* Olive */
-    --chart-2: 20 90% 60%; /* Orange */
-    --chart-3: 45 70% 65%; /* Mustard */
-    --chart-4: 90 25% 35%; /* Darker Olive */
-    --chart-5: 20 70% 45%; /* Darker Orange */
+    --chart-1: 180 65% 45%;
+    --chart-2: 275 75% 60%;
+    --chart-3: 220 8% 50%;
+    --chart-4: 180 45% 30%;
+    --chart-5: 275 55% 35%;
 
     --radius: 0.1rem;
 
-    --sidebar-background: 35 30% 85%;
-    --sidebar-foreground: 30 30% 15%;
-    --sidebar-primary: 20 90% 55%;
-    --sidebar-primary-foreground: 35 30% 5%;
-    --sidebar-accent: 90 30% 45%;
-    --sidebar-accent-foreground: 35 30% 95%;
-    --sidebar-border: 35 30% 65%;
-    --sidebar-ring: 20 95% 60%;
+    --sidebar-background: 220 5% 95%;
+    --sidebar-foreground: 220 10% 15%;
+    --sidebar-primary: 180 70% 40%;
+    --sidebar-primary-foreground: 180 20% 5%;
+    --sidebar-accent: 275 75% 55%;
+    --sidebar-accent-foreground: 275 15% 98%;
+    --sidebar-border: 220 5% 80%;
+    --sidebar-ring: 275 80% 60%;
   }
 }
 
@@ -117,7 +124,7 @@
     width: 100vw;
     height: 100vh;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.05; /* Make it very subtle */
+    opacity: 0.04; /* Make it very subtle */
     pointer-events: none;
     z-index: 9999;
     mix-blend-mode: overlay;
@@ -131,7 +138,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(hsla(var(--background) / 0.01) 50%, hsla(var(--foreground) / 0.03) 50%); /* Very subtle lines */
+    background: linear-gradient(hsla(var(--background) / 0.01) 50%, hsla(var(--foreground) / 0.025) 50%); /* Very subtle lines */
     background-size: 100% 2px; /* Thinner scan lines */
     z-index: 9998;
     pointer-events: none;
@@ -154,45 +161,45 @@ body { animation: flicker 0.1s infinite alternate; } */
 
 @layer base {
   * {
-    @apply border-border; /* Use muted teal border */
+    @apply border-border; /* Use themed border */
   }
   body {
-    @apply bg-background text-foreground; /* Use charcoal bg, muted teal text */
+    @apply bg-background text-foreground; /* Use themed bg, themed text */
     /* Font applied dynamically via layout.tsx */
     /* font-family: var(--font-cutive-mono), monospace; */
     font-feature-settings: "liga" 0, "calt" 0;
-    text-shadow: 0 0 2px hsla(var(--foreground) / 0.15); /* Even subtler text glow */
+    text-shadow: 0 0 1.5px hsla(var(--foreground) / 0.1); /* Even subtler text glow */
   }
 }
 
 /* Neon Glow Effect for Controls (Primary/Accent Colors) - Applied via class */
 .neon-glow {
-  box-shadow: 0 0 1px hsl(var(--primary)), 0 0 2px hsl(var(--primary)), inset 0 0 1px hsl(var(--primary) / 0.3);
-  border-color: hsl(var(--primary) / 0.7);
+  box-shadow: 0 0 0.5px hsl(var(--primary)), 0 0 1px hsl(var(--primary)), inset 0 0 0.5px hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary) / 0.6);
   transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 .neon-glow:focus, .neon-glow:hover {
-   box-shadow: 0 0 2px hsl(var(--ring)), 0 0 4px hsl(var(--ring)), 0 0 6px hsl(var(--ring)), inset 0 0 1px hsl(var(--ring) / 0.4);
+   box-shadow: 0 0 1px hsl(var(--ring)), 0 0 2px hsl(var(--ring)), 0 0 3px hsl(var(--ring)), inset 0 0 0.5px hsl(var(--ring) / 0.3);
    border-color: hsl(var(--ring));
 }
 /* Specific application for buttons */
-.btn-neon { /* Uses Primary (Mustard) */
+.btn-neon { /* Uses Primary (Teal) */
     @apply neon-glow bg-transparent border text-primary hover:text-background hover:bg-primary;
 }
-.btn-neon-secondary { /* Uses Secondary (Teal) - Less Glow */
-     @apply border border-secondary text-secondary hover:text-secondary-foreground hover:bg-secondary/90 shadow-[0_0_3px_hsl(var(--secondary)/0.3)] hover:shadow-[0_0_5px_hsl(var(--secondary)/0.5)];
+.btn-neon-secondary { /* Uses Secondary (Gray) - Less Glow */
+     @apply border border-secondary text-secondary hover:text-secondary-foreground hover:bg-secondary/90 shadow-[0_0_2px_hsl(var(--secondary)/0.25)] hover:shadow-[0_0_4px_hsl(var(--secondary)/0.4)];
      transition: box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
-.btn-neon-accent { /* Uses Accent (Magenta) */
+.btn-neon-accent { /* Uses Accent (Purple) */
     @apply border border-accent text-accent hover:text-accent-foreground hover:bg-accent;
-    box-shadow: 0 0 1px hsl(var(--accent)), 0 0 2px hsl(var(--accent)), inset 0 0 1px hsl(var(--accent) / 0.3);
+    box-shadow: 0 0 0.5px hsl(var(--accent)), 0 0 1px hsl(var(--accent)), inset 0 0 0.5px hsl(var(--accent) / 0.2);
     transition: box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 .btn-neon-accent:focus, .btn-neon-accent:hover {
-    box-shadow: 0 0 2px hsl(var(--accent)), 0 0 4px hsl(var(--accent)), 0 0 6px hsl(var(--accent)), inset 0 0 1px hsl(var(--accent) / 0.4);
+    box-shadow: 0 0 1px hsl(var(--accent)), 0 0 2px hsl(var(--accent)), 0 0 3px hsl(var(--accent)), inset 0 0 0.5px hsl(var(--accent) / 0.3);
 }
 .btn-neon-destructive { /* Uses Destructive (Muted Red) - Minimal Glow */
-     @apply border border-destructive text-destructive hover:text-destructive-foreground hover:bg-destructive/90 shadow-[0_0_2px_hsl(var(--destructive)/0.2)] hover:shadow-[0_0_4px_hsl(var(--destructive)/0.4)];
+     @apply border border-destructive text-destructive hover:text-destructive-foreground hover:bg-destructive/90 shadow-[0_0_1.5px_hsl(var(--destructive)/0.15)] hover:shadow-[0_0_3px_hsl(var(--destructive)/0.3)];
      transition: box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 
@@ -200,11 +207,11 @@ body { animation: flicker 0.1s infinite alternate; } */
 /* Subtle Chromatic Aberration - Applied via class */
 .chromatic-aberration-light {
   position: relative;
-  color: transparent; /* Apply text color directly to element */
-  background: none;
+  /* color: transparent; /* Apply text color directly to element */
+  /* background: none; */
 }
 .chromatic-aberration-light > * { /* Ensure children inherit color properly */
-    color: inherit;
+    /* color: inherit; */
 }
 .chromatic-aberration-light::before,
 .chromatic-aberration-light::after {
@@ -221,32 +228,32 @@ body { animation: flicker 0.1s infinite alternate; } */
 }
 .chromatic-aberration-light::before {
   /* Red/Orange shift */
-  color: hsl(15 100% 50% / 0.3); /* More subtle */
-  transform: translate(-0.3px, -0.3px); /* Less shift */
-  mix-blend-mode: screen;
-  animation: glitch-subtle-1 4s infinite linear alternate-reverse;
+  color: hsl(10 100% 50% / 0.2); /* More subtle */
+  transform: translate(-0.2px, -0.2px); /* Less shift */
+  mix-blend-mode: screen; /* screen or lighten */
+  animation: glitch-subtle-1 3.5s infinite linear alternate-reverse;
 }
 .chromatic-aberration-light::after {
   /* Cyan/Blue shift */
-  color: hsl(180 100% 50% / 0.3); /* More subtle */
-  transform: translate(0.3px, 0.3px); /* Less shift */
-  mix-blend-mode: screen;
-  animation: glitch-subtle-2 4.5s infinite linear alternate-reverse;
+  color: hsl(190 100% 50% / 0.2); /* More subtle */
+  transform: translate(0.2px, 0.2px); /* Less shift */
+  mix-blend-mode: screen; /* screen or lighten */
+  animation: glitch-subtle-2 4s infinite linear alternate-reverse;
 }
 @keyframes glitch-subtle-1 {
-  0%, 100% { transform: translate(-0.3px, -0.3px); opacity: 0.95; }
-  50% { transform: translate(-0.25px, -0.35px); opacity: 1; }
+  0%, 100% { transform: translate(-0.2px, -0.2px) skewX(-1deg); opacity: 0.9; }
+  50% { transform: translate(-0.15px, -0.25px) skewX(1deg); opacity: 1; }
 }
 @keyframes glitch-subtle-2 {
-   0%, 100% { transform: translate(0.3px, 0.3px); opacity: 0.95; }
-   50% { transform: translate(0.35px, 0.25px); opacity: 1; }
+   0%, 100% { transform: translate(0.2px, 0.2px) skewX(1deg); opacity: 0.9; }
+   50% { transform: translate(0.25px, 0.15px) skewX(-1deg); opacity: 1; }
 }
 
 
 /* Blinking cursor effect */
 .terminal-input:focus {
-  caret-color: hsl(var(--primary)); /* Use mustard caret */
-  animation: blink-caret 1.2s step-end infinite;
+  caret-color: hsl(var(--primary)); /* Use primary (teal) caret */
+  animation: blink-caret 1.1s step-end infinite;
 }
 @keyframes blink-caret {
   from, to { border-right: 2px solid hsl(var(--primary)); margin-right: -2px; /* Prevent layout shift */ }
@@ -256,69 +263,69 @@ body { animation: flicker 0.1s infinite alternate; } */
 
 /* Style Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px; /* Thinner scrollbars */
-  height: 6px;
+  width: 5px; /* Thinner scrollbars */
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(var(--background) / 0.3);
+  background: hsl(var(--background) / 0.2);
   border-radius: 0; /* Sharp corners */
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border) / 0.6); /* Muted teal thumb */
+  background: hsl(var(--border) / 0.5); /* Themed border color thumb */
   border-radius: 0;
   border: none;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--border) / 0.8);
+  background: hsl(var(--border) / 0.7);
 }
 
 /* Basic popup styling */
 .popup-overlay {
     position: fixed;
     inset: 0;
-    background-color: hsla(var(--background) / 0.6); /* Less opaque overlay */
-    backdrop-filter: blur(2px); /* Less blur */
+    background-color: hsla(var(--background) / 0.7); /* More opaque overlay */
+    backdrop-filter: blur(1.5px); /* Subtle blur */
     z-index: 50;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.2s ease-out;
+    animation: fadeIn 0.15s ease-out;
 }
 .popup-content {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    padding: 1.5rem; /* p-6 */
+    padding: 1.25rem; /* p-5 */
     border-radius: var(--radius); /* Sharp corners */
-    box-shadow: 0 0 10px hsla(var(--primary) / 0.1), 0 0 20px hsla(var(--primary) / 0.05); /* Mustard glow */
+    box-shadow: 0 0 8px hsla(var(--accent) / 0.15), 0 0 15px hsla(var(--accent) / 0.1); /* Purple glow */
     max-width: 90%;
     max-height: 90%;
     overflow: auto;
-    animation: scaleIn 0.25s ease-out;
+    animation: scaleIn 0.2s ease-out;
     position: relative;
 }
 .popup-close-button {
     position: absolute;
-    top: 0.5rem; /* p-2 */
-    right: 0.5rem; /* p-2 */
+    top: 0.4rem; 
+    right: 0.4rem;
     background: transparent;
     border: none;
     color: hsl(var(--muted-foreground));
     cursor: pointer;
-    padding: 0.25rem; /* p-1 */
+    padding: 0.2rem;
     border-radius: var(--radius);
     transition: color 0.2s, background-color 0.2s;
     z-index: 10; /* Ensure close button is above content */
 }
 .popup-close-button:hover {
     color: hsl(var(--foreground));
-    background-color: hsla(var(--muted)/ 0.5);
+    background-color: hsla(var(--muted)/ 0.4);
 }
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 @keyframes scaleIn {
-    from { transform: scale(0.97); opacity: 0; }
+    from { transform: scale(0.98); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
 
