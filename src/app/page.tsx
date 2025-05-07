@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { generateCodeFromPrompt, type FileObject } from '@/ai/flows/generate-code-from-prompt'; // Import FileObject type
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarRail, SidebarSeparator, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarRail, SidebarSeparator, SidebarTrigger, useSidebar, SidebarProvider } from "@/components/ui/sidebar"; // Added SidebarProvider import
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -856,6 +856,7 @@ export default function Home() {
                     </AccordionItem>
                 </Accordion>
 
+                {/* Footer */}
                 <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
                  [ CodeSynth IDE v0.8 | Active Providers: {getProviderNames(allModels, modelError, appSettings, POTENTIAL_CLOUD_MODELS)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                 </footer>
@@ -863,3 +864,4 @@ export default function Home() {
         </SidebarProvider>
     );
 }
+
