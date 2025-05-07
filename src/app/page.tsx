@@ -25,14 +25,15 @@ import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
+    TooltipProvider // Added TooltipProvider import
 } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { generateCodeFromPrompt, type FileObject } from '@/ai/flows/generate-code-from-prompt'; // Import FileObject type
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarRail, SidebarSeparator, SidebarTrigger, useSidebar, SidebarProvider } from "@/components/ui/sidebar"; // Added SidebarProvider import
-import { Separator } from "@/components/ui/separator"; // Added Separator import
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarRail, SidebarSeparator, SidebarTrigger, useSidebar, SidebarProvider } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,8 +56,8 @@ type CombinedModel = {
 const POTENTIAL_CLOUD_MODELS: ModelMetadata[] = [
     { id: 'googleai/gemini-1.5-flash-latest', provider: 'Google AI', name: 'Gemini 1.5 Flash (Cloud)' },
     { id: 'googleai/gemini-1.5-pro-latest', provider: 'Google AI', name: 'Gemini 1.5 Pro (Cloud)' },
-    { id: 'openrouter/anthropic/claude-3-haiku', provider: 'OpenRouter', name: 'Claude 3 Haiku (OpenRouter)', unavailable: true },
-    { id: 'huggingface/codellama/CodeLlama-7b-hf', provider: 'Hugging Face', name: 'CodeLlama-7b-hf (HF)', unavailable: true },
+    { id: 'openrouter/anthropic/claude-3-haiku', provider: 'OpenRouter', name: 'Claude 3 Haiku (OpenRouter)', unavailable: true }, // Marked unavailable due to package issue
+    { id: 'huggingface/codellama/CodeLlama-7b-hf', provider: 'Hugging Face', name: 'CodeLlama-7b-hf (HF)', unavailable: true }, // Marked unavailable due to package issue
 ];
 
 interface Agent {
@@ -120,7 +121,7 @@ export default function Home() {
     const [ollamaModels, setOllamaModels] = useState<ClientOllamaModel[]>([]);
     const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
     const { toast } = useToast();
-    const [_modelError, setModelError] = useState<string | null>(null); // Renamed to avoid conflict
+    const [modelError, setModelError] = useState<string | null>(null); 
     const [showSettingsPanel, setShowSettingsPanel] = useState(false);
 
     const [validationStatus, setValidationStatus] = useState<string>("VALIDATION_OK");
@@ -227,6 +228,7 @@ export default function Home() {
         POTENTIAL_CLOUD_MODELS.forEach(m => {
             let canAdd = false;
             if (m.provider === 'Google AI' && appSettings.googleApiKey) canAdd = true;
+            // Explicitly check the 'unavailable' flag for OpenRouter and HuggingFace
             else if (m.provider === 'OpenRouter' && appSettings.openRouterApiKey && !m.unavailable) canAdd = true;
             else if (m.provider === 'Hugging Face' && appSettings.huggingFaceApiKey && !m.unavailable) canAdd = true;
             
@@ -251,13 +253,14 @@ export default function Home() {
                 const firstOllama = combined.find(m => m.provider === 'Ollama' && !m.unavailable);
                 const firstGoogle = combined.find(m => m.provider === 'Google AI' && !m.unavailable);
                 
-                if (firstOllama && (!_modelError || (!_modelError.includes("Failed to connect") && !_modelError.includes("Ollama Base URL is not configured")))) {
+                // Prioritize Ollama if available and no critical error, then Google, then any other available
+                if (firstOllama && (!modelError || (!modelError.toLowerCase().includes("failed to connect") && !modelError.toLowerCase().includes("connection refused") && !modelError.includes("Ollama Base URL is not configured")))) {
                     setSelectedModelId(firstOllama.id);
                 } else if (firstGoogle) {
                     setSelectedModelId(firstGoogle.id);
                 } else {
-                    const firstAvailable = combined.find(m => !m.unavailable);
-                    setSelectedModelId(firstAvailable ? firstAvailable.id : (combined[0]?.id || ''));
+                    const firstAvailableNonUnavailable = combined.find(m => !m.unavailable);
+                    setSelectedModelId(firstAvailableNonUnavailable ? firstAvailableNonUnavailable.id : (combined[0]?.id || ''));
                 }
             }
         } else {
@@ -265,7 +268,7 @@ export default function Home() {
         }
         console.log(`[page] Combined model list updated. Total models: ${combined.length}. Selected: ${selectedModelId}`);
 
-    }, [ollamaModels, appSettings.googleApiKey, appSettings.openRouterApiKey, appSettings.huggingFaceApiKey, selectedModelId, _modelError, appSettings.ollamaBaseUrl]); // Added ollamaBaseUrl dependency
+    }, [ollamaModels, appSettings.googleApiKey, appSettings.openRouterApiKey, appSettings.huggingFaceApiKey, selectedModelId, modelError, appSettings.ollamaBaseUrl]);
 
     const handleCodeGeneration = async (currentPrompt?: string) => {
         const promptToUse = typeof currentPrompt === 'string' ? currentPrompt : prompt;
@@ -275,7 +278,6 @@ export default function Home() {
         }
         setIsLoading(true);
         setGeneratedFiles(null); // Clear previous files
-        // setPreviousFileContent(generatedFiles ? generatedFiles[0]?.content : null); // Save current code (of first file)
         setValidationStatus("VALIDATING_PROMPT...");
 
         try {
@@ -292,9 +294,8 @@ export default function Home() {
 
             setGeneratedFiles(output.files);
             if (output.files.length > 0) {
-                setActiveFilePath(output.files[0].filePath); // Set first file as active
-                setPreviousFileContent(output.files[0].content); // Update previous code for potential edits
-                 // Build a conceptual file tree
+                setActiveFilePath(output.files[0].filePath); 
+                setPreviousFileContent(output.files[0].content); 
                 const tree = buildFileTree(output.files);
                 setFileTree(tree);
             } else {
@@ -312,7 +313,6 @@ export default function Home() {
         } catch (error: any) {
             console.error("[page] Code generation failed:", error);
             const errorMessage = error.message || "An unknown error occurred during generation.";
-            // Display error in a single "error file"
             setGeneratedFiles([{ filePath: "ERROR.txt", content: `// AI_GENERATION_ERROR //\n// Model: ${selectedModelId || 'None Selected'}\n// Error: ${errorMessage}\n// --- Previous Code Context (if any) ---\n${previousFileContent || '// No previous code context.'}` }]);
             setActiveFilePath("ERROR.txt");
             setFileTree(null);
@@ -337,7 +337,6 @@ export default function Home() {
         setIsEditPopupOpen(false);
         setValidationStatus("EDIT_IN_PROGRESS...");
 
-        // Determine current content for editing
         const currentContentToEdit = generatedFiles?.find(f => f.filePath === activeFilePath)?.content || previousFileContent;
 
         try {
@@ -347,30 +346,27 @@ export default function Home() {
             }
             setValidationStatus(`SENDING_EDIT_TO_${selectedModelId.toUpperCase()}...`);
             const output = await generateCodeFromPrompt({
-                prompt: newEditPrompt, // The edit instruction is the new prompt
-                previousCode: currentContentToEdit || undefined, // Current active file's code is context
+                prompt: newEditPrompt, 
+                previousCode: currentContentToEdit || undefined, 
                 modelName: selectedModelId,
             });
 
             if (output.files && output.files.length > 0) {
-                // Assume edit modifies the active file or generates a related one.
-                // For simplicity, replace/update the active file or add new ones.
-                // A more sophisticated approach would involve diffing or specific instructions from AI.
                 setGeneratedFiles(prevFiles => {
                     const newFiles = [...(prevFiles || [])];
                     output.files.forEach(newFile => {
                         const existingIndex = newFiles.findIndex(f => f.filePath === newFile.filePath);
                         if (existingIndex !== -1) {
-                            newFiles[existingIndex] = newFile; // Update existing
+                            newFiles[existingIndex] = newFile; 
                         } else {
-                            newFiles.push(newFile); // Add new
+                            newFiles.push(newFile); 
                         }
                     });
                     return newFiles;
                 });
-                setActiveFilePath(output.files[0].filePath); // Focus on the first (potentially modified) file
+                setActiveFilePath(output.files[0].filePath); 
                 setPreviousFileContent(output.files[0].content);
-                setFileTree(buildFileTree(generatedFiles || [])); // Rebuild tree
+                setFileTree(buildFileTree(generatedFiles || [])); 
             }
 
             setValidationStatus("EDIT_OK");
@@ -408,23 +404,19 @@ export default function Home() {
         
         let taskResult = `Processed task for ${activeAgent.name}: "${agentTaskInput}" (Simulated)`;
 
-        // Conceptual: Call specific agent flows based on activeAgent.id
-        // For now, we just simulate. If it's Code Assistant and "generate unit tests", it could modify the prompt.
         if (activeAgent.id === 'code-assistant' && agentTaskInput.toLowerCase().includes('unit test')) {
             const currentCode = generatedFiles?.find(f => f.filePath === activeFilePath)?.content;
             if (currentCode) {
                 const testPrompt = `Generate unit tests for the following ${activeFilePath?.split('.').pop() || 'code'}:\n\n\`\`\`\n${currentCode}\n\`\`\`\n\n${agentTaskInput}`;
-                // Set prompt and trigger generation.
                 setPrompt(testPrompt);
-                handleCodeGeneration(testPrompt); // Trigger generation
+                handleCodeGeneration(testPrompt); 
                 taskResult = `Task routed to main generator for unit tests based on: "${agentTaskInput}"`;
             } else {
                 taskResult = "No active code to generate tests for.";
             }
         } else if (activeAgent.id === 'project-architect' && agentTaskInput.toLowerCase().includes('scaffold')) {
-             // Example: "scaffold a new Next.js page named 'about'"
-            setPrompt(agentTaskInput); // Use architect's input as the main prompt
-            handleCodeGeneration(agentTaskInput); // Trigger generation
+            setPrompt(agentTaskInput); 
+            handleCodeGeneration(agentTaskInput); 
             taskResult = `Project Architect task routed to main generator: "${agentTaskInput}"`;
         }
         // ... other agent capabilities would be routed here
@@ -448,7 +440,7 @@ export default function Home() {
 
         switch (provider) {
             case 'Ollama':
-                return <HardDrive className={cn(baseClasses, "text-secondary", _modelError && _modelError.toLowerCase().includes("failed to connect") ? commonUnavailableClasses : "")} title={_modelError && _modelError.toLowerCase().includes("failed to connect") ? `Ollama (Connection Error)` : `Ollama (Local)`} />;
+                return <HardDrive className={cn(baseClasses, "text-secondary", modelError && modelError.toLowerCase().includes("failed to connect") ? commonUnavailableClasses : "")} title={modelError && modelError.toLowerCase().includes("failed to connect") ? `Ollama (Connection Error)` : `Ollama (Local)`} />;
             case 'Google AI':
                 return <BrainCircuit className={cn(baseClasses, "text-primary")} title="Google AI" />;
             case 'OpenRouter':
@@ -478,7 +470,7 @@ export default function Home() {
     const handleFileSelect = (filePath: string) => {
         setActiveFilePath(filePath);
         const selectedFile = generatedFiles?.find(f => f.filePath === filePath);
-        setPreviousFileContent(selectedFile?.content || null); // Set for editing context
+        setPreviousFileContent(selectedFile?.content || null); 
         toast({ title: "File Selected", description: `${filePath} is now active in the editor.`, className: "font-mono" });
     };
 
@@ -516,12 +508,11 @@ export default function Home() {
         }
     };
     
-    // Helper to build a simplified tree for display
     const buildFileTree = (files: FileObject[]): FileTreeNode => {
         const root: FileTreeNode = { name: 'Project Root', path: '/', type: 'folder', children: [] };
         const map: { [key: string]: FileTreeNode } = { '/': root };
 
-        files.sort((a, b) => a.filePath.localeCompare(b.filePath)); // Sort for consistent tree structure
+        files.sort((a, b) => a.filePath.localeCompare(b.filePath)); 
 
         for (const file of files) {
             const parts = file.filePath.split('/').filter(p => p);
@@ -546,12 +537,12 @@ export default function Home() {
                     map[currentPath] = newNode;
                 }
                 parentNode = map[currentPath];
-                 if (isLastPart && parentNode.type === 'folder') { // If a folder was created first, then a file at same path
+                 if (isLastPart && parentNode.type === 'folder') { 
                     parentNode.type = 'file';
                     parentNode.content = file.content;
                     parentNode.children = undefined;
                 } else if (isLastPart && parentNode.type === 'file') {
-                     parentNode.content = file.content; // Update content if file already exists
+                     parentNode.content = file.content; 
                  }
 
             }
@@ -757,11 +748,11 @@ export default function Home() {
                                         </SelectItem>
                                     )) : (
                                          <SelectItem value="no-models" disabled className="py-1 px-2">
-                                            {_modelError ? "Error loading models" : "No models available or loading..."}
+                                            {modelError ? "Error loading models" : "No models available or loading..."}
                                         </SelectItem>
                                     )}
                                 </SelectGroup>
-                                {_modelError && <p className="text-destructive text-xs p-2">{_modelError}</p>}
+                                {modelError && <p className="text-destructive text-xs p-2">{modelError}</p>}
                             </SelectContent>
                         </Select>
                         <TooltipProvider delayDuration={100}>
@@ -798,8 +789,8 @@ export default function Home() {
 
                     <div className="lg:w-2/3 flex-grow flex flex-col overflow-hidden h-full">
                         <CodeDisplay
-                            files={currentActiveFileForDisplay} // Pass array of files or single active file
-                            activeFilePath={activeFilePath} // Pass active file path
+                            files={currentActiveFileForDisplay} 
+                            activeFilePath={activeFilePath} 
                             isLoading={isLoading}
                             containerClassName="flex-grow"
                         />
@@ -858,7 +849,7 @@ export default function Home() {
 
                 {/* Footer */}
                 <footer className="pt-1 mt-auto border-t-2 border-border text-center text-xs text-muted-foreground font-mono flex-shrink-0">
-                 [ CodeSynth IDE v0.8 | Active Providers: {getProviderNames(allModels, _modelError, appSettings, POTENTIAL_CLOUD_MODELS)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
+                 [ CodeSynth IDE v0.8 | Active Providers: {getProviderNames(allModels, modelError, appSettings, POTENTIAL_CLOUD_MODELS)} | Status: {validationStatus} | &copy; {new Date().getFullYear()} ]
                 </footer>
              </SidebarInset>
         </SidebarProvider>
