@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -8,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { X, Loader2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Import the same dark theme used in CodeDisplay
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Import the oneDark style directly to avoid issues with the library's style index.
+import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
 
 interface EditPopupProps {
   initialCode: string;

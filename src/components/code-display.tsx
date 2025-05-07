@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -7,9 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, Check, Loader2, FileCode2, Files } from "lucide-react"; // Added FileCode2, Files
 import { useToast } from "@/hooks/use-toast";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-// Choose a suitable dark theme. `oneDark` is a good option.
-// Avoid themes like 'coy' which might have missing dependencies or light backgrounds.
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Import the oneDark style directly to avoid issues with the library's style index.
+import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { FileObject } from '@/ai/flows/generate-code-from-prompt'; // Import FileObject type
