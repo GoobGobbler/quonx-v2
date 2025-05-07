@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -48,6 +47,7 @@ interface CombinedModel {
   size?: number; // Optional size in bytes (primarily for Ollama)
   description?: string; // Optional description
   unavailable?: boolean; // Flag for unavailable models due to missing plugins
+  unavailableReason?: string; // Reason for unavailability
 }
 
 
@@ -59,15 +59,15 @@ const POTENTIAL_CLOUD_MODELS: CombinedModel[] = [
   { id: 'googleai/gemini-pro-vision', name: 'Gemini Pro Vision', provider: 'Google AI', description: 'Vision-capable model (Requires multimodal support)'}, // Added Vision
 
   // OpenRouter models (Require OPENROUTER_API_KEY, but plugin@1.8.0 is unavailable)
-  { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
-  { id: 'openrouter/google/gemini-pro-1.5', name: 'Gemini 1.5 Pro (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
-  { id: 'openrouter/meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
-  { id: 'openrouter/mistralai/mistral-large-latest', name: 'Mistral Large (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
-  { id: 'openrouter/microsoft/wizardlm-2-8x22b', name: 'WizardLM-2 8x22B (OR)', provider: 'OpenRouter', description: 'Unavailable (@genkit-ai/openrouter@1.8.0 not found)', unavailable: true },
+  { id: 'openrouter/anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', provider: 'OpenRouter', description: 'Unavailable: @genkit-ai/openrouter@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/openrouter@1.8.0 package not found.' },
+  { id: 'openrouter/google/gemini-pro-1.5', name: 'Gemini 1.5 Pro (OR)', provider: 'OpenRouter', description: 'Unavailable: @genkit-ai/openrouter@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/openrouter@1.8.0 package not found.' },
+  { id: 'openrouter/meta-llama/llama-3-70b-instruct', name: 'Llama 3 70B (OR)', provider: 'OpenRouter', description: 'Unavailable: @genkit-ai/openrouter@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/openrouter@1.8.0 package not found.' },
+  { id: 'openrouter/mistralai/mistral-large-latest', name: 'Mistral Large (OR)', provider: 'OpenRouter', description: 'Unavailable: @genkit-ai/openrouter@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/openrouter@1.8.0 package not found.' },
+  { id: 'openrouter/microsoft/wizardlm-2-8x22b', name: 'WizardLM-2 8x22B (OR)', provider: 'OpenRouter', description: 'Unavailable: @genkit-ai/openrouter@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/openrouter@1.8.0 package not found.' },
 
   // Hugging Face models (Require HF_API_KEY, but plugin@1.8.0 is unavailable)
-  { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Unavailable (@genkit-ai/huggingface@1.8.0 not found)', unavailable: true },
-  { id: 'huggingface/meta-llama/Meta-Llama-3-8B-Instruct', name: 'Llama 3 8B Instruct (HF)', provider: 'Hugging Face', description: 'Unavailable (@genkit-ai/huggingface@1.8.0 not found)', unavailable: true }, // Example HF model
+  { id: 'huggingface/codellama/CodeLlama-7b-hf', name: 'CodeLlama 7B (HF)', provider: 'Hugging Face', description: 'Unavailable: @genkit-ai/huggingface@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/huggingface@1.8.0 package not found.' },
+  { id: 'huggingface/meta-llama/Meta-Llama-3-8B-Instruct', name: 'Llama 3 8B Instruct (HF)', provider: 'Hugging Face', description: 'Unavailable: @genkit-ai/huggingface@1.8.0 not found', unavailable: true, unavailableReason: '@genkit-ai/huggingface@1.8.0 package not found.' },
 ];
 // --- End Potential Cloud Models ---
 
@@ -264,13 +264,15 @@ export default function Home() {
     // Add OpenRouter models but keep marked as unavailable if plugin is missing
     configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'OpenRouter'));
     if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'OpenRouter' && m.unavailable)) {
-        pluginWarnings.push("OpenRouter integration unavailable (@genkit-ai/openrouter@1.8.0 not found)");
+        const reason = POTENTIAL_CLOUD_MODELS.find(m => m.provider === 'OpenRouter' && m.unavailable)?.unavailableReason || 'Package not found.';
+        pluginWarnings.push(`OpenRouter integration unavailable: ${reason}`);
     }
 
     // Add Hugging Face models but keep marked as unavailable if plugin is missing
     configuredCloudModels.push(...POTENTIAL_CLOUD_MODELS.filter(m => m.provider === 'Hugging Face'));
     if (POTENTIAL_CLOUD_MODELS.some(m => m.provider === 'Hugging Face' && m.unavailable)) {
-        pluginWarnings.push("HuggingFace integration unavailable (@genkit-ai/huggingface@1.8.0 not found)");
+        const reason = POTENTIAL_CLOUD_MODELS.find(m => m.provider === 'Hugging Face' && m.unavailable)?.unavailableReason || 'Package not found.';
+        pluginWarnings.push(`HuggingFace integration unavailable: ${reason}`);
     }
 
 
@@ -312,10 +314,21 @@ export default function Home() {
         // No Ollama error, but list is empty OR all models are unavailable
          const missingKeys = [
              !settings.googleApiKey && "Google AI",
-             !settings.openRouterApiKey && "OpenRouter",
-             !settings.huggingFaceApiKey && "Hugging Face"
+             // OpenRouter and Hugging Face keys are less relevant if packages are missing
+             // !settings.openRouterApiKey && "OpenRouter",
+             // !settings.huggingFaceApiKey && "Hugging Face"
          ].filter(Boolean).join(', ');
-         errorMessage = `No available AI models found. Check Ollama status. For cloud models, configure API keys in Settings (${missingKeys ? `Missing: ${missingKeys}` : ''}) and ensure required plugins are installed.`;
+
+         let baseMessage = `No available AI models found. Check Ollama status.`;
+         if (missingKeys) {
+             baseMessage += ` For cloud models, configure API keys in Settings (Missing: ${missingKeys}).`;
+         }
+         if (pluginWarnings.length > 0) { // Add plugin unavailability info
+             baseMessage += ` Additionally, some integrations (OpenRouter, HuggingFace) are unavailable due to missing packages.`;
+         } else {
+            baseMessage += ` Ensure required Genkit plugins are installed and configured for other providers.`;
+         }
+         errorMessage = baseMessage;
     }
 
     // Display warnings as non-destructive toasts
@@ -390,9 +403,9 @@ export default function Home() {
     // Check if the selected model is marked as unavailable
     const selectedModel = allModels.find(m => m.id === selectedModelId);
     if (selectedModel?.unavailable) {
-        const errorMsg = `Model "${selectedModel.name}" (${selectedModel.provider}) is unavailable due to missing plugin. Check settings or install required package.`;
+        const errorMsg = `Model "${selectedModel.name}" (${selectedModel.provider}) is unavailable. Reason: ${selectedModel.unavailableReason || 'Configuration issue.'} Please check settings or choose another model.`;
         setGenerationError(errorMsg);
-        toast({ variant: "destructive", title: "ERR: Model Unavailable", description: errorMsg, className: "font-mono" });
+        toast({ variant: "destructive", title: "ERR: Model Unavailable", description: errorMsg, className: "font-mono", duration: 10000 });
         return;
     }
 

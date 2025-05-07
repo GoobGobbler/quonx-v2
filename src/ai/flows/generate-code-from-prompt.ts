@@ -35,7 +35,7 @@ export type GenerateCodeFromPromptOutput = z.infer<typeof GenerateCodeFromPrompt
 // - Integrate long-term memory/context beyond just the last successful code.
 // - Add MLOps integration (logging experiment details, performance metrics).
 // - Integrate security scanning (e.g., Snyk) results or linters as tools/context.
-// - Support multimodal input (images, sketches).
+// - Support multimodal input (images, sketches, sketches).
 // - Implement robust validation pipeline (syntax, deps, tests) before returning code.
 // - Add Firebase/Cloud deployment integration steps.
 // ------------------------------------
@@ -99,21 +99,22 @@ const generateCodeFromPromptFlow = ai.defineFlow(
     // --- Model Resolution and Validation ---
     try {
         // Basic check for provider prefix (only check for potentially configurable ones)
-        const hasPrefix = KNOWN_PROVIDER_PREFIXES.some(prefix => input.modelName.startsWith(prefix));
+        const hasKnownPrefix = KNOWN_PROVIDER_PREFIXES.some(prefix => input.modelName.startsWith(prefix));
+        const isOllama = input.modelName.startsWith('ollama/');
         const isOpenRouter = input.modelName.startsWith('openrouter/');
         const isHuggingFace = input.modelName.startsWith('huggingface/');
 
-        // Handle unavailable plugins explicitly
+        // Handle unavailable plugins explicitly due to missing packages
         if (isOpenRouter) {
-             throw new Error(`Model provider "openrouter/" is currently unavailable. The @genkit-ai/openrouter package was not found.`);
+             throw new Error(`Model provider "openrouter/" is currently unavailable. The @genkit-ai/openrouter package (version 1.8.0) was not found or could not be installed. Please check package availability or choose another provider.`);
         }
         if (isHuggingFace) {
-             throw new Error(`Model provider "huggingface/" is currently unavailable. The @genkit-ai/huggingface package was not found.`);
+             throw new Error(`Model provider "huggingface/" is currently unavailable. The @genkit-ai/huggingface package (version 1.8.0) was not found or could not be installed. Please check package availability or choose another provider.`);
         }
 
-        // Check format for providers that *could* be configured
-        if (!hasPrefix && !input.modelName.startsWith('ollama/')) { // Add ollama explicitly here as it's dynamic
-            throw new Error(`Invalid model name format: "${input.modelName}". Name must include a known provider prefix (e.g., "ollama/llama3", "googleai/gemini-1.5-flash").`);
+        // Check format for providers that *could* be configured (Ollama is dynamic but needs prefix)
+        if (!hasKnownPrefix && !isOllama) { // Add ollama explicitly here as it's dynamic
+            throw new Error(`Invalid model name format: "${input.modelName}". Name must include a known provider prefix (e.g., "ollama/llama3", "googleai/gemini-1.5-flash"). OpenRouter and HuggingFace plugins are currently unavailable.`);
         }
 
         // Attempt to get the model reference from Genkit
@@ -138,7 +139,7 @@ const generateCodeFromPromptFlow = ai.defineFlow(
         } else if (input.modelName.startsWith('googleai/')) {
             detailedMessage += ' Check Genkit configuration and ensure the GOOGLE_API_KEY is correctly set in Settings/environment.';
         } else {
-            detailedMessage += ' Verify the model name and check if the required Genkit plugin is installed and configured correctly.';
+            detailedMessage += ' Verify the model name and check if the required Genkit plugin is installed and configured correctly. Note: OpenRouter and HuggingFace plugins are currently unavailable due_to missing packages.';
         }
         // Append the original error for more technical detail if available and not redundant
         if (error.message && !detailedMessage.includes(error.message)) {
